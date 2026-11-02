@@ -249,6 +249,7 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   avatarColor: 'from-orange-500 to-amber-600',
   senderName: 'Alex',
   defaultOffer: 'Free 2-minute mobile wireframe walkthrough',
+  signature: 'Website Design & Redesign | Lagos, Nigeria\nkoravale.studio@gmail.com | koravale.com',
   preferredProvider: 'gmail',
   gmailAccountEmail: '',
   customSmtp: {

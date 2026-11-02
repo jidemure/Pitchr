@@ -31,7 +31,7 @@ import { getStoredUserProfile, updateLeadFollowUp, recordSequenceEvent } from '@
 interface EmailStudioViewProps {
   sequence: EmailSequence | null;
   audit: AuditReport | null;
-  onRegenerateSequence: (tone: OutreachTone, agencyName: string, senderName: string, offer: string) => Promise<void>;
+  onRegenerateSequence: (tone: OutreachTone, agencyName: string, senderName: string, offer: string, signature?: string) => Promise<void>;
   isGenerating: boolean;
   onLeadStatusUpdated?: () => void;
   onOpenSettings?: () => void;
@@ -54,6 +54,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
   const [agencyName, setAgencyName] = useState<string>(userProfile.agencyName || 'Apex Digital Studio');
   const [senderName, setSenderName] = useState<string>(userProfile.senderName || 'Jordan');
   const [customOffer, setCustomOffer] = useState<string>(userProfile.defaultOffer || 'Free 2-minute mobile wireframe walkthrough');
+  const [signature, setSignature] = useState<string>(userProfile.signature || 'Website Design & Redesign | Lagos, Nigeria\nkoravale.studio@gmail.com | koravale.com');
   const [showConfig, setShowConfig] = useState<boolean>(false);
 
   // Provider choice
@@ -350,10 +351,26 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
               </div>
             </div>
 
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-medium text-slate-600 block">
+                  Cold Email Signature & Contact Info
+                </label>
+                <span className="text-[10px] text-slate-400 font-mono">Appears on every touch</span>
+              </div>
+              <textarea
+                value={signature}
+                onChange={(e) => setSignature(e.target.value)}
+                rows={2}
+                placeholder="Website Design & Redesign | Lagos, Nigeria&#10;koravale.studio@gmail.com | koravale.com"
+                className="w-full text-xs p-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500 font-mono leading-relaxed"
+              />
+            </div>
+
             <div className="mt-3 flex justify-end">
               <button
                 type="button"
-                onClick={() => onRegenerateSequence(activeTone, agencyName, senderName, customOffer)}
+                onClick={() => onRegenerateSequence(activeTone, agencyName, senderName, customOffer, signature)}
                 disabled={isGenerating}
                 className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50 whitespace-nowrap shadow-xs"
               >

@@ -167,6 +167,10 @@ export function analyzePrimaryConversionBottleneck(scores: {
 /**
  * In-memory sliding window rate limiter for serverless API routes.
  */
+export function getClientIp(req: { headers: { get: (name: string) => string | null } }): string {
+  return req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local-client';
+}
+
 export function createRateLimiter(windowMs: number, maxRequests: number) {
   const hits = new Map<string, number[]>();
 

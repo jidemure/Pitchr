@@ -690,9 +690,9 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                 </div>
 
                 {/* Email Body with Highlighting (Screenshot 03) */}
-                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/40 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3 font-sans">
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/40 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3 font-sans whitespace-pre-line">
                   {emailBody ? (
-                    emailBody.split('\n\n').map((para, i) => {
+                    emailBody.split(/\n{2,}/).map((para, i) => {
                       if (para.includes(cleanDomain)) {
                         const parts = para.split(cleanDomain);
                         return (

@@ -174,6 +174,7 @@ export interface UserProfile {
   avatarColor?: string;
   senderName: string;
   defaultOffer: string;
+  signature?: string;
   preferredProvider?: EmailProvider;
   gmailAccountEmail?: string;
   customSmtp?: CustomSmtpConfig;

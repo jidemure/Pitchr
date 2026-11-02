@@ -148,10 +148,11 @@ export default function HomePage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             audit: report,
-            tone: 'boutique_agency',
+            tone: 'specific_problem',
             agencyName: userProfile.agencyName || 'Apex Digital Studio',
-            senderName: userProfile.senderName || 'Tariq',
+            senderName: userProfile.senderName || 'Alex',
             customOffer: userProfile.defaultOffer || 'Free 2-minute mobile wireframe walkthrough',
+            customSignature: userProfile.signature || '',
           }),
         });
 
@@ -523,10 +524,15 @@ export default function HomePage() {
             <EmailStudioView
               sequence={currentSequence}
               audit={currentAudit}
-              onRegenerateSequence={async (tone, agency, sender, offer) => {
+              onRegenerateSequence={async (tone, agency, sender, offer, sig) => {
                 if (currentAudit) {
                   setIsGeneratingEmail(true);
                   try {
+                    if (sig) {
+                      const updatedProf = { ...userProfile, signature: sig, agencyName: agency, senderName: sender };
+                      setUserProfile(updatedProf);
+                      saveStoredUserProfile(updatedProf);
+                    }
                     const res = await fetch('/api/outreach/generate', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
@@ -536,6 +542,7 @@ export default function HomePage() {
                         agencyName: agency,
                         senderName: sender,
                         customOffer: offer,
+                        customSignature: sig || userProfile.signature || '',
                       }),
                     });
                     const data = await res.json();
