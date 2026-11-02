@@ -18,7 +18,8 @@ import {
   Clock,
   Sparkles,
   LayoutGrid,
-  List
+  List,
+  MoreVertical
 } from 'lucide-react';
 import { Lead, LeadStatus, EmailProvider } from '@/lib/types';
 import { formatAuditDate, getStoredSequences, updateLeadFollowUp } from '@/lib/storage';
@@ -58,6 +59,8 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const industryDropdownRef = useRef<HTMLDivElement>(null);
   const quickSendRef = useRef<HTMLDivElement>(null);
+  const [activeActionMenuLeadId, setActiveActionMenuLeadId] = useState<string | null>(null);
+  const actionMenuRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -70,6 +73,9 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
       }
       if (quickSendRef.current && !quickSendRef.current.contains(event.target as Node)) {
         setQuickSendLeadId(null);
+      }
+      if (actionMenuRef.current && !actionMenuRef.current.contains(event.target as Node)) {
+        setActiveActionMenuLeadId(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -356,40 +362,78 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="relative">
                     <button
-                      onClick={() => onSelectLeadForAudit(lead)}
-                      title="View scorecard"
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:text-orange-700 hover:bg-orange-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveActionMenuLeadId(activeActionMenuLeadId === lead.id ? null : lead.id);
+                      }}
+                      title="Actions"
+                      className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
+                      aria-label="Lead actions"
                     >
-                      <Eye className="h-4 w-4" />
+                      <MoreVertical className="h-4 w-4" />
                     </button>
 
-                    <button
-                      onClick={() => onSelectLeadForEmail(lead)}
-                      title="Open Email Studio"
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
-                    >
-                      <Mail className="h-4 w-4" />
-                    </button>
-
-                    {onOpenTeaser && (
-                      <button
-                        onClick={() => onOpenTeaser(lead)}
-                        title="Share Public Teaser Link"
-                        className="p-2 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                    {activeActionMenuLeadId === lead.id && (
+                      <div
+                        ref={actionMenuRef}
+                        className="absolute right-0 bottom-full mb-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-left animate-in fade-in zoom-in-95 duration-100"
                       >
-                        <Sparkles className="h-4 w-4 text-orange-500" />
-                      </button>
-                    )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectLeadForAudit(lead);
+                            setActiveActionMenuLeadId(null);
+                          }}
+                          className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5 text-slate-400" />
+                          <span>View Audit Report</span>
+                        </button>
 
-                    <button
-                      onClick={() => onDeleteLead(lead.id)}
-                      title="Delete lead"
-                      className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectLeadForEmail(lead);
+                            setActiveActionMenuLeadId(null);
+                          }}
+                          className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                        >
+                          <Mail className="h-3.5 w-3.5 text-slate-400" />
+                          <span>Open Email Studio</span>
+                        </button>
+
+                        {onOpenTeaser && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onOpenTeaser(lead);
+                              setActiveActionMenuLeadId(null);
+                            }}
+                            className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                          >
+                            <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+                            <span>Share Teaser Link</span>
+                          </button>
+                        )}
+
+                        <div className="my-1 border-t border-slate-100" />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onDeleteLead(lead.id);
+                            setActiveActionMenuLeadId(null);
+                          }}
+                          className="w-full px-3 py-1.5 text-xs flex items-center gap-2 text-rose-600 hover:bg-rose-50 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                          <span>Delete Lead</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -699,17 +743,17 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                       </td>
 
                       <td className="py-3.5 px-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5 relative">
+                        <div className="flex items-center justify-end gap-2 relative">
                           {/* 1-Click Send Menu Button */}
                           <div className="relative" ref={isMenuOpen ? quickSendRef : undefined}>
                             <button
                               type="button"
                               onClick={() => setQuickSendLeadId(isMenuOpen ? null : lead.id)}
                               title="1-Click Send via Gmail, Outlook, Yahoo, or Custom Mail"
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 text-xs font-medium transition-colors shadow-2xs"
+                              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100/80 text-orange-900 text-xs font-medium transition-colors shadow-2xs"
                             >
-                              <Send className="h-3 w-3" />
-                              <span className="hidden sm:inline">Send</span>
+                              <Send className="h-3 w-3 text-orange-600" />
+                              <span className="hidden sm:inline">Pitch</span>
                               <ChevronDown className="h-2.5 w-2.5 opacity-60" />
                             </button>
 
@@ -755,7 +799,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => handleQuickSend(lead, 'custom_smtp')}
-                                  className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 transition-colors border-t border-slate-100"
+                                  className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-orange-50 text-slate-700 hover:text-orange-700 transition-colors border-t border-slate-100"
                                 >
                                   <Mail className="h-3.5 w-3.5 text-orange-600 shrink-0" />
                                   <span>Custom Mail</span>
@@ -764,39 +808,81 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                             )}
                           </div>
 
-                          <button
-                            onClick={() => onSelectLeadForAudit(lead)}
-                            title="View detailed scorecard"
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-orange-700 hover:bg-orange-50 transition-colors"
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </button>
-
-                          <button
-                            onClick={() => onSelectLeadForEmail(lead)}
-                            title="Open in Email Studio"
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
-                          >
-                            <Mail className="h-3.5 w-3.5" />
-                          </button>
-
-                          {onOpenTeaser && (
+                          {/* Vertical Ellipsis Actions Menu */}
+                          <div className="relative">
                             <button
-                              onClick={() => onOpenTeaser(lead)}
-                              title="Share Public Teaser Link"
-                              className="p-1.5 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveActionMenuLeadId(activeActionMenuLeadId === lead.id ? null : lead.id);
+                                setQuickSendLeadId(null);
+                              }}
+                              title="Actions"
+                              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                              aria-label="Lead actions"
                             >
-                              <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+                              <MoreVertical className="h-3.5 w-3.5" />
                             </button>
-                          )}
 
-                          <button
-                            onClick={() => onDeleteLead(lead.id)}
-                            title="Delete lead"
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
+                            {activeActionMenuLeadId === lead.id && (
+                              <div
+                                ref={actionMenuRef}
+                                className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-left animate-in fade-in zoom-in-95 duration-100"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onSelectLeadForAudit(lead);
+                                    setActiveActionMenuLeadId(null);
+                                  }}
+                                  className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                >
+                                  <Eye className="h-3.5 w-3.5 text-slate-400" />
+                                  <span>View Audit Scorecard</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onSelectLeadForEmail(lead);
+                                    setActiveActionMenuLeadId(null);
+                                  }}
+                                  className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                >
+                                  <Mail className="h-3.5 w-3.5 text-slate-400" />
+                                  <span>Open Email Studio</span>
+                                </button>
+
+                                {onOpenTeaser && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onOpenTeaser(lead);
+                                      setActiveActionMenuLeadId(null);
+                                    }}
+                                    className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                  >
+                                    <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+                                    <span>Share Public Teaser</span>
+                                  </button>
+                                )}
+
+                                <div className="my-1 border-t border-slate-100" />
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onDeleteLead(lead.id);
+                                    setActiveActionMenuLeadId(null);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs flex items-center gap-2 text-rose-600 hover:bg-rose-50 transition-colors"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                                  <span>Delete Lead</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>

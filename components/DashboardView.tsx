@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Globe,
   Layers,
@@ -12,7 +12,9 @@ import {
   ExternalLink,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  MoreVertical,
+  Eye
 } from 'lucide-react';
 import { Lead, AuditReport, EmailSequence } from '@/lib/types';
 import { formatAuditDate } from '@/lib/storage';
@@ -34,6 +36,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onNavigateToScanner,
   onNavigateToCrm,
 }) => {
+  const [activeMenuLeadId, setActiveMenuLeadId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuLeadId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const totalAudits = leads.length;
   const avgScore =
     totalAudits > 0
@@ -211,10 +226,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {formatAuditDate(lead.lastAuditedAt || lead.createdAt)}
                       </td>
                       <td className="py-3">
-                        <div className="font-medium text-slate-800">{lead.companyName}</div>
-                        <div className="text-[11px] text-slate-400 font-mono truncate max-w-[200px]">
-                          {cleanDomain}
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => onSelectLeadForAuditModal(lead)}
+                          className="text-left group/link"
+                        >
+                          <div className="font-medium text-slate-800 group-hover/link:text-orange-600 transition-colors">
+                            {lead.companyName}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono truncate max-w-[200px]">
+                            {cleanDomain}
+                          </div>
+                        </button>
                       </td>
                       <td className="py-3">
                         <span
@@ -233,13 +256,62 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {lead.contactEmail || `contact@${cleanDomain}`}
                       </td>
                       <td className="py-3 text-right whitespace-nowrap">
-                        <button
-                          onClick={() => onSelectLeadForAuditModal(lead)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-orange-50 hover:text-orange-800 text-slate-700 font-medium rounded-lg text-xs transition-colors"
-                        >
-                          <span>Open Modal</span>
-                          <ArrowRight className="h-3 w-3" />
-                        </button>
+                        <div className="relative inline-block text-left">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMenuLeadId(activeMenuLeadId === lead.id ? null : lead.id);
+                            }}
+                            title="Actions"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                            aria-label={`Actions for ${lead.companyName}`}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </button>
+
+                          {activeMenuLeadId === lead.id && (
+                            <div
+                              ref={menuRef}
+                              className="absolute right-0 top-full mt-1.5 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-left animate-in fade-in zoom-in-95 duration-100"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onSelectLeadForAuditModal(lead);
+                                  setActiveMenuLeadId(null);
+                                }}
+                                className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                              >
+                                <Eye className="h-3.5 w-3.5 text-slate-400" />
+                                <span>View Audit Scorecard</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onNavigateToCrm();
+                                  setActiveMenuLeadId(null);
+                                }}
+                                className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                              >
+                                <Layers className="h-3.5 w-3.5 text-slate-400" />
+                                <span>View in CRM Pipeline</span>
+                              </button>
+
+                              <a
+                                href={lead.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={() => setActiveMenuLeadId(null)}
+                                className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors border-t border-slate-100"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                                <span>Visit Website</span>
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );

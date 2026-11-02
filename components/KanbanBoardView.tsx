@@ -407,36 +407,7 @@ export const KanbanBoardView: React.FC<KanbanBoardViewProps> = ({
                           </div>
 
                           <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => onSelectLeadForAudit(lead)}
-                              title="View audit score & diagnosis"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-slate-100 transition-colors"
-                            >
-                              <Eye className="h-3.5 w-3.5" />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => onSelectLeadForEmail(lead)}
-                              title="Open Email Studio sequence"
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-slate-100 transition-colors"
-                            >
-                              <Mail className="h-3.5 w-3.5" />
-                            </button>
-
-                            {onOpenTeaser && (
-                              <button
-                                type="button"
-                                onClick={() => onOpenTeaser(lead)}
-                                title="Share public audit teaser link"
-                                className="p-1.5 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors"
-                              >
-                                <Sparkles className="h-3.5 w-3.5 text-orange-500" />
-                              </button>
-                            )}
-
-                            {/* Stage Move Dropdown (for non-drag or mobile users) */}
+                            {/* Vertical Ellipsis Actions Menu */}
                             <div className="relative">
                               <button
                                 type="button"
@@ -447,8 +418,9 @@ export const KanbanBoardView: React.FC<KanbanBoardViewProps> = ({
                                   );
                                   setActiveQuickSendLeadId(null);
                                 }}
-                                title="Move stage or delete"
+                                title="Actions"
                                 className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+                                aria-label="Lead actions"
                               >
                                 <MoreVertical className="h-3.5 w-3.5" />
                               </button>
@@ -456,14 +428,52 @@ export const KanbanBoardView: React.FC<KanbanBoardViewProps> = ({
                               {activeMenuLeadId === lead.id && (
                                 <div
                                   ref={menuRef}
-                                  className="absolute right-0 bottom-full mb-1.5 w-44 bg-white rounded-xl shadow-xl border border-slate-200 p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95 duration-100"
+                                  className="absolute right-0 bottom-full mb-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 p-1 z-30 space-y-0.5 animate-in fade-in zoom-in-95 duration-100"
                                 >
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onSelectLeadForAudit(lead);
+                                      setActiveMenuLeadId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs text-slate-700 hover:bg-slate-100 transition-colors"
+                                  >
+                                    <Eye className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                    <span>View Audit Report</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      onSelectLeadForEmail(lead);
+                                      setActiveMenuLeadId(null);
+                                    }}
+                                    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs text-slate-700 hover:bg-slate-100 transition-colors"
+                                  >
+                                    <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                                    <span>Open Email Studio</span>
+                                  </button>
+
+                                  {onOpenTeaser && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        onOpenTeaser(lead);
+                                        setActiveMenuLeadId(null);
+                                      }}
+                                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-xs text-slate-700 hover:bg-slate-100 transition-colors"
+                                    >
+                                      <Sparkles className="h-3.5 w-3.5 text-orange-500 shrink-0" />
+                                      <span>Share Teaser Link</span>
+                                    </button>
+                                  )}
+
+                                  <div className="pt-1 border-t border-slate-100" />
                                   <span className="block px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider text-slate-400">
                                     Move to Stage
-                                  </span>
-                                  {COLUMNS.map((col) => (
-                                    <button
-                                      key={col.id}
+                                   </span>
+                                   {COLUMNS.map((col) => (
+                                     <button key={col.id}
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation();
