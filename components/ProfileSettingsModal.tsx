@@ -11,10 +11,17 @@ import {
   Mail,
   Shield,
   Sparkles,
-  Database
+  Database,
+  Send,
+  Server,
+  AlertCircle,
+  CheckCircle2,
+  Lock,
+  ExternalLink
 } from 'lucide-react';
-import { UserProfile } from '@/lib/types';
+import { UserProfile, EmailProvider } from '@/lib/types';
 import { saveStoredUserProfile } from '@/lib/storage';
+import { EMAIL_PROVIDERS_META } from '@/lib/emailDispatcher';
 
 interface ProfileSettingsModalProps {
   isOpen: boolean;
@@ -37,7 +44,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   isSupabaseConnected,
   onClearAllData,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profile' | 'settings' | 'logout'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'email_providers' | 'settings' | 'logout'>('profile');
 
   // Form states
   const [name, setName] = useState(profile.name);
@@ -47,6 +54,21 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [senderName, setSenderName] = useState(profile.senderName);
   const [defaultOffer, setDefaultOffer] = useState(profile.defaultOffer);
   const [avatarColor, setAvatarColor] = useState(profile.avatarColor || 'from-emerald-500 to-teal-600');
+  const [preferredProvider, setPreferredProvider] = useState<import('@/lib/types').EmailProvider>(
+    profile.preferredProvider || 'gmail'
+  );
+
+  // Custom SMTP states
+  const [smtpHost, setSmtpHost] = useState(profile.customSmtp?.host || '');
+  const [smtpPort, setSmtpPort] = useState(profile.customSmtp?.port || 587);
+  const [smtpSecure, setSmtpSecure] = useState(profile.customSmtp?.secure || false);
+  const [smtpUser, setSmtpUser] = useState(profile.customSmtp?.auth?.user || '');
+  const [smtpPass, setSmtpPass] = useState(profile.customSmtp?.auth?.pass || '');
+  const [smtpFromEmail, setSmtpFromEmail] = useState(profile.customSmtp?.fromEmail || profile.email || '');
+  const [smtpFromName, setSmtpFromName] = useState(profile.customSmtp?.fromName || profile.senderName || profile.name || '');
+  const [isTestingSmtp, setIsTestingSmtp] = useState(false);
+  const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
   const [isSaved, setIsSaved] = useState(false);
 
   if (!isOpen) return null;
@@ -59,8 +81,52 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
     { label: 'Rose', value: 'from-rose-500 to-pink-600', dot: 'bg-rose-500' },
   ];
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleTestSmtp = async () => {
+    setIsTestingSmtp(true);
+    setSmtpTestResult(null);
+    try {
+      const res = await fetch('/api/outreach/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          test: true,
+          smtp: {
+            host: smtpHost,
+            port: Number(smtpPort),
+            secure: smtpSecure,
+            auth: {
+              user: smtpUser,
+              pass: smtpPass,
+            },
+            fromEmail: smtpFromEmail,
+            fromName: smtpFromName,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSmtpTestResult({
+          success: true,
+          message: data.message || 'SMTP Connection Verified Successfully!',
+        });
+      } else {
+        setSmtpTestResult({
+          success: false,
+          message: data.error || 'Failed to authenticate with SMTP server. Check credentials.',
+        });
+      }
+    } catch (err: unknown) {
+      setSmtpTestResult({
+        success: false,
+        message: err instanceof Error ? err.message : 'Network error testing SMTP',
+      });
+    } finally {
+      setIsTestingSmtp(false);
+    }
+  };
+
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     const updated: UserProfile = {
       name,
       email,
@@ -69,6 +135,19 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       senderName,
       defaultOffer,
       avatarColor,
+      preferredProvider,
+      customSmtp: {
+        host: smtpHost,
+        port: Number(smtpPort),
+        secure: smtpSecure,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        fromEmail: smtpFromEmail || email,
+        fromName: smtpFromName || senderName,
+        configured: Boolean(smtpHost && smtpUser && smtpPass),
+      },
     };
     saveStoredUserProfile(updated);
     onUpdateProfile(updated);
@@ -137,6 +216,18 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           >
             <User className="h-3.5 w-3.5" />
             <span>Edit Profile</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('email_providers')}
+            className={`py-3 px-2 border-b-2 transition-all flex items-center gap-1.5 ${
+              activeTab === 'email_providers'
+                ? 'border-emerald-600 text-emerald-800 font-semibold'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Mail className="h-3.5 w-3.5" />
+            <span>Email Providers</span>
           </button>
 
           <button
@@ -272,7 +363,223 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
             </form>
           )}
 
-          {/* TAB 2: Settings */}
+          {/* TAB 2: Email Providers & Accounts */}
+          {activeTab === 'email_providers' && (
+            <div className="space-y-5">
+              <div>
+                <span className="text-xs font-semibold text-slate-900 block font-heading">
+                  Preferred Outreach Provider
+                </span>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Choose the default email service used when launching single-click pitches and follow-ups.
+                </p>
+              </div>
+
+              {/* Provider Selector Cards: Gmail, Outlook, Yahoo, Custom SMTP, Default Mail */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {(['gmail', 'outlook', 'yahoo', 'custom_smtp', 'mailto'] as EmailProvider[]).map((pKey) => {
+                  const meta = EMAIL_PROVIDERS_META[pKey];
+                  const isSelected = preferredProvider === pKey;
+                  return (
+                    <button
+                      key={pKey}
+                      type="button"
+                      onClick={() => setPreferredProvider(pKey)}
+                      className={`text-left p-3 rounded-xl border transition-all flex items-start gap-3 ${
+                        isSelected
+                          ? 'border-emerald-600 bg-emerald-50/50 shadow-xs ring-1 ring-emerald-500'
+                          : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg bg-white border border-slate-200 shadow-2xs shrink-0 ${meta.color}`}>
+                        <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                          <path d={meta.iconSvg} />
+                        </svg>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-900 font-heading">
+                            {meta.name}
+                          </span>
+                          {isSelected && <Check className="h-3.5 w-3.5 text-emerald-600 shrink-0" />}
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-2">
+                          {meta.description}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom SMTP Configuration Drawer / Panel */}
+              <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3.5">
+                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <Server className="h-4 w-4 text-emerald-700" />
+                    <div>
+                      <span className="text-xs font-semibold text-slate-900 block font-heading">
+                        Custom SMTP Credentials
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Compatible with SendGrid, Mailgun, AWS SES, Zoho, PrivateEmail, or your own server
+                      </span>
+                    </div>
+                  </div>
+                  {Boolean(smtpHost && smtpUser) && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full border border-emerald-200">
+                      <CheckCircle2 className="h-2.5 w-2.5" />
+                      Configured
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
+                      SMTP Host / Server
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpHost}
+                      onChange={(e) => setSmtpHost(e.target.value)}
+                      placeholder="e.g. smtp.sendgrid.net or mail.myagency.com"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
+                      Port
+                    </label>
+                    <input
+                      type="number"
+                      value={smtpPort}
+                      onChange={(e) => setSmtpPort(Number(e.target.value))}
+                      placeholder="587 or 465"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
+                      SMTP Username
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpUser}
+                      onChange={(e) => setSmtpUser(e.target.value)}
+                      placeholder="apikey or user@myagency.com"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
+                      SMTP Password / API Key
+                    </label>
+                    <input
+                      type="password"
+                      value={smtpPass}
+                      onChange={(e) => setSmtpPass(e.target.value)}
+                      placeholder="••••••••••••••••"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
+                      From Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={smtpFromEmail}
+                      onChange={(e) => setSmtpFromEmail(e.target.value)}
+                      placeholder="hello@myagency.com"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
+                      From Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={smtpFromName}
+                      onChange={(e) => setSmtpFromName(e.target.value)}
+                      placeholder="e.g. Tariq | Apex Digital"
+                      className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-1">
+                  <label className="inline-flex items-center gap-2 cursor-pointer text-xs text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={smtpSecure}
+                      onChange={(e) => setSmtpSecure(e.target.checked)}
+                      className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 h-3.5 w-3.5"
+                    />
+                    <span>Require SSL/TLS (Port 465)</span>
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={handleTestSmtp}
+                    disabled={isTestingSmtp || !smtpHost || !smtpUser}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-50 transition-colors shadow-2xs"
+                  >
+                    {isTestingSmtp ? (
+                      <>
+                        <span className="h-3 w-3 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Server className="h-3 w-3 text-slate-400" />
+                        <span>Test Connection</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {smtpTestResult && (
+                  <div
+                    className={`p-2.5 rounded-lg text-xs flex items-start gap-2 border ${
+                      smtpTestResult.success
+                        ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                        : 'bg-rose-50 text-rose-900 border-rose-200'
+                    }`}
+                  >
+                    {smtpTestResult.success ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-rose-600 shrink-0 mt-0.5" />
+                    )}
+                    <span>{smtpTestResult.message}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSave()}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-medium rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-all active:scale-[0.98]"
+                >
+                  {isSaved ? 'Providers Saved!' : 'Save Email Configuration'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: Settings */}
           {activeTab === 'settings' && (
             <div className="space-y-4">
               <div className="space-y-1">

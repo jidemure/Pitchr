@@ -82,6 +82,30 @@ export interface EmailSequence {
   customRedesignPitch: string;
 }
 
+export type EmailProvider = 'gmail' | 'outlook' | 'yahoo' | 'custom_smtp' | 'mailto';
+
+export interface CustomSmtpConfig {
+  host: string;
+  port: number;
+  secure: boolean;
+  auth: {
+    user: string;
+    pass: string;
+  };
+  fromEmail: string;
+  fromName: string;
+  configured: boolean;
+}
+
+export interface LeadFollowUpStatus {
+  currentTouchStep: number; // 1: Initial Hook, 2: Follow-up 1, 3: Follow-up 2, 4: Breakup
+  lastSentAt?: string;
+  lastSentTouch?: number;
+  lastProviderUsed?: EmailProvider;
+  nextFollowUpDue?: string;
+  notes?: string;
+}
+
 export interface Lead {
   id: string;
   url: string;
@@ -96,6 +120,7 @@ export interface Lead {
   auditId?: string;
   campaignId?: string;
   notes?: string;
+  followUp?: LeadFollowUpStatus;
 }
 
 export interface SupabaseConfig {
@@ -114,4 +139,6 @@ export interface UserProfile {
   avatarColor?: string;
   senderName: string;
   defaultOffer: string;
+  preferredProvider?: EmailProvider;
+  customSmtp?: CustomSmtpConfig;
 }

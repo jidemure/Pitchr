@@ -461,6 +461,8 @@ export default function HomePage() {
                 }
               }}
               isGenerating={isGeneratingEmail}
+              onOpenSettings={() => setIsProfileModalOpen(true)}
+              onLeadStatusUpdated={() => setLeads(getStoredLeads())}
             />
           )}
         </main>

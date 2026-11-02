@@ -249,13 +249,36 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   avatarColor: 'from-emerald-500 to-teal-600',
   senderName: 'Tariq',
   defaultOffer: 'Free 2-minute mobile wireframe walkthrough',
+  preferredProvider: 'gmail',
+  customSmtp: {
+    host: '',
+    port: 587,
+    secure: false,
+    auth: {
+      user: '',
+      pass: '',
+    },
+    fromEmail: '',
+    fromName: 'Tariq Lanez',
+    configured: false,
+  },
 };
 
 export const getStoredUserProfile = (): UserProfile => {
   if (typeof window === 'undefined') return DEFAULT_USER_PROFILE;
   try {
     const raw = localStorage.getItem(USER_PROFILE_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        ...DEFAULT_USER_PROFILE,
+        ...parsed,
+        customSmtp: {
+          ...DEFAULT_USER_PROFILE.customSmtp!,
+          ...(parsed.customSmtp || {}),
+        },
+      };
+    }
   } catch (e) {
     console.error('Failed reading user profile from localStorage:', e);
   }
@@ -270,3 +293,37 @@ export const saveStoredUserProfile = (profile: UserProfile): void => {
     console.error('Failed saving user profile to localStorage:', e);
   }
 };
+
+export function updateLeadFollowUp(
+  leadId: string,
+  touchStep: number,
+  provider: import('./types').EmailProvider,
+  notes?: string
+): Lead[] {
+  const currentLeads = getStoredLeads();
+  const nextDueDate = new Date();
+  // Next touch in 3-4 days
+  nextDueDate.setDate(nextDueDate.getDate() + 3);
+
+  const updated = currentLeads.map((lead) => {
+    if (lead.id === leadId) {
+      const nextStep = Math.min(4, touchStep + 1);
+      return {
+        ...lead,
+        status: (touchStep === 1 ? 'contacted' : lead.status) as import('./types').LeadStatus,
+        followUp: {
+          currentTouchStep: nextStep,
+          lastSentAt: new Date().toISOString(),
+          lastSentTouch: touchStep,
+          lastProviderUsed: provider,
+          nextFollowUpDue: nextStep <= 4 ? nextDueDate.toISOString() : undefined,
+          notes: notes || lead.followUp?.notes,
+        },
+      };
+    }
+    return lead;
+  });
+
+  saveStoredLeads(updated);
+  return updated;
+}

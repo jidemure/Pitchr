@@ -15,8 +15,9 @@ import {
   ArrowRight,
   Database
 } from 'lucide-react';
-import { AuditReport, EmailSequence, Lead } from '@/lib/types';
+import { AuditReport, EmailSequence, Lead, EmailProvider } from '@/lib/types';
 import { formatAuditDate } from '@/lib/storage';
+import { triggerDirectProviderLaunch, EMAIL_PROVIDERS_META } from '@/lib/emailDispatcher';
 
 interface AuditModalProps {
   isOpen: boolean;
@@ -497,10 +498,86 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                   )}
                 </div>
 
+                {/* Email Providers Quick Dispatch Bar */}
+                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-500">
+                    <span className="font-semibold uppercase tracking-wider">1-Click Dispatch Provider</span>
+                    <span>To: {report?.contactEmail || `contact@${cleanDomain}`}</span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerDirectProviderLaunch('gmail', {
+                          to: report?.contactEmail || `contact@${cleanDomain}`,
+                          subject: subjectLine,
+                          body: `${emailBody}\n\n${currentTouch?.cta || ''}`,
+                        });
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-red-200 text-red-700 hover:bg-red-50 transition-colors shadow-2xs"
+                    >
+                      <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d={EMAIL_PROVIDERS_META.gmail.iconSvg} />
+                      </svg>
+                      <span>Gmail</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerDirectProviderLaunch('outlook', {
+                          to: report?.contactEmail || `contact@${cleanDomain}`,
+                          subject: subjectLine,
+                          body: `${emailBody}\n\n${currentTouch?.cta || ''}`,
+                        });
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-sky-200 text-sky-700 hover:bg-sky-50 transition-colors shadow-2xs"
+                    >
+                      <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d={EMAIL_PROVIDERS_META.outlook.iconSvg} />
+                      </svg>
+                      <span>Outlook</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerDirectProviderLaunch('yahoo', {
+                          to: report?.contactEmail || `contact@${cleanDomain}`,
+                          subject: subjectLine,
+                          body: `${emailBody}\n\n${currentTouch?.cta || ''}`,
+                        });
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors shadow-2xs"
+                    >
+                      <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                        <path d={EMAIL_PROVIDERS_META.yahoo.iconSvg} />
+                      </svg>
+                      <span>Yahoo</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        triggerDirectProviderLaunch('mailto', {
+                          to: report?.contactEmail || `contact@${cleanDomain}`,
+                          subject: subjectLine,
+                          body: `${emailBody}\n\n${currentTouch?.cta || ''}`,
+                        });
+                      }}
+                      className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50 transition-colors shadow-2xs"
+                    >
+                      <Mail className="h-3.5 w-3.5 text-emerald-600" />
+                      <span>Custom Mail</span>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Bottom Action Strip */}
-                <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
                   <div className="text-[11px] text-slate-500 font-mono">
-                    ✓ Stored to Pitchr Database & CRM
+                    ✓ Saved to CRM Pipeline
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -510,7 +587,7 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                       className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]"
                     >
                       {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
-                      <span>{copied ? 'Copied' : 'Copy Email'}</span>
+                      <span>{copied ? 'Copied' : 'Copy Text'}</span>
                     </button>
 
                     {onNavigateToCrm && (

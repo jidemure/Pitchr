@@ -13,10 +13,14 @@ import {
   ArrowUpDown,
   ChevronDown,
   Check,
-  X
+  X,
+  Send,
+  Clock,
+  Sparkles
 } from 'lucide-react';
-import { Lead, LeadStatus } from '@/lib/types';
-import { formatAuditDate } from '@/lib/storage';
+import { Lead, LeadStatus, EmailProvider } from '@/lib/types';
+import { formatAuditDate, getStoredSequences, updateLeadFollowUp } from '@/lib/storage';
+import { triggerDirectProviderLaunch, EMAIL_PROVIDERS_META } from '@/lib/emailDispatcher';
 
 interface LeadsPipelineViewProps {
   leads: Lead[];
@@ -44,8 +48,10 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
 
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isIndustryDropdownOpen, setIsIndustryDropdownOpen] = useState(false);
+  const [quickSendLeadId, setQuickSendLeadId] = useState<string | null>(null);
   const statusDropdownRef = useRef<HTMLDivElement>(null);
   const industryDropdownRef = useRef<HTMLDivElement>(null);
+  const quickSendRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on click outside
   useEffect(() => {
@@ -56,10 +62,35 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
       if (industryDropdownRef.current && !industryDropdownRef.current.contains(event.target as Node)) {
         setIsIndustryDropdownOpen(false);
       }
+      if (quickSendRef.current && !quickSendRef.current.contains(event.target as Node)) {
+        setQuickSendLeadId(null);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleQuickSend = (lead: Lead, provider: EmailProvider) => {
+    const sequences = getStoredSequences();
+    const seq = lead.campaignId ? sequences[lead.campaignId] : null;
+    const currentStep = lead.followUp?.currentTouchStep || 1;
+    const touch = seq?.touches?.find((t) => t.step === currentStep) || seq?.touches?.[0];
+
+    const cleanDomain = lead.url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+    const recipient = lead.contactEmail || `contact@${cleanDomain}`;
+    const subject = touch?.subjectLines?.[0] || `${cleanDomain} website polish & redesign proposal`;
+    const body = touch ? `${touch.body}\n\n${touch.cta}` : `Hi,\n\nI reviewed ${cleanDomain} and found several mobile conversion opportunities.`;
+
+    triggerDirectProviderLaunch(provider, {
+      to: recipient,
+      subject,
+      body,
+    });
+
+    updateLeadFollowUp(lead.id, currentStep, provider);
+    onUpdateLeadStatus(lead.id, currentStep === 1 ? 'contacted' : lead.status);
+    setQuickSendLeadId(null);
+  };
 
   const uniqueIndustries = Array.from(new Set(leads.map((l) => l.industry).filter(Boolean)));
 
@@ -480,6 +511,13 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                   </div>
                 </th>
 
+                <th className="py-3 px-4 font-semibold">
+                  <div className="flex items-center gap-1">
+                    <Clock className="h-3 w-3 text-slate-400" />
+                    <span>Follow-up Step</span>
+                  </div>
+                </th>
+
                 <th
                   className="py-3 px-4 font-semibold cursor-pointer hover:text-slate-800"
                   onClick={() => {
@@ -501,7 +539,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-14 text-center text-slate-500 text-xs">
+                  <td colSpan={7} className="py-14 text-center text-slate-500 text-xs">
                     <div className="flex flex-col items-center justify-center space-y-2">
                       <div className="p-2.5 bg-slate-100 rounded-xl text-slate-400">
                         <Layers className="h-5 w-5" />
@@ -518,86 +556,182 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                   </td>
                 </tr>
               ) : (
-                filteredLeads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div>
-                        <span className="font-semibold text-slate-900 block font-heading">
-                          {lead.companyName}
+                filteredLeads.map((lead) => {
+                  const currentTouchStep = lead.followUp?.currentTouchStep || 1;
+                  const touchTitle =
+                    currentTouchStep === 1
+                      ? 'Touch 1 (Pitch)'
+                      : currentTouchStep === 2
+                      ? 'Follow-up #1'
+                      : currentTouchStep === 3
+                      ? 'Follow-up #2'
+                      : 'Breakup';
+
+                  const isMenuOpen = quickSendLeadId === lead.id;
+
+                  return (
+                    <tr key={lead.id} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div>
+                          <span className="font-semibold text-slate-900 block font-heading">
+                            {lead.companyName}
+                          </span>
+                          <a
+                            href={lead.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs text-slate-500 hover:text-emerald-700 font-mono inline-flex items-center gap-1 truncate max-w-xs"
+                          >
+                            <span>{lead.url.replace(/^https?:\/\//, '')}</span>
+                            <ExternalLink className="h-2.5 w-2.5" />
+                          </a>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-slate-600 text-xs">
+                        {lead.industry}
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded font-mono font-bold text-xs tabular-nums border ${getScoreColor(
+                            lead.overallScore
+                          )}`}
+                        >
+                          {lead.overallScore}/100
                         </span>
-                        <a
-                          href={lead.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-xs text-slate-500 hover:text-emerald-700 font-mono inline-flex items-center gap-1 truncate max-w-xs"
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <select
+                          value={lead.status}
+                          onChange={(e) => onUpdateLeadStatus(lead.id, e.target.value as LeadStatus)}
+                          className="text-xs font-mono py-1 px-2 rounded-md bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         >
-                          <span>{lead.url.replace(/^https?:\/\//, '')}</span>
-                          <ExternalLink className="h-2.5 w-2.5" />
-                        </a>
-                      </div>
-                    </td>
+                          <option value="audited">Audited</option>
+                          <option value="drafted">Draft Ready</option>
+                          <option value="contacted">Contacted</option>
+                          <option value="replied">Replied</option>
+                          <option value="converted">Converted</option>
+                        </select>
+                      </td>
 
-                    <td className="py-3.5 px-4 text-slate-600 text-xs">
-                      {lead.industry}
-                    </td>
+                      {/* Follow-up Sequence Status */}
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs font-semibold text-slate-800 font-mono">
+                            {touchTitle}
+                          </span>
+                          {lead.followUp?.lastProviderUsed ? (
+                            <span className="text-[10px] text-emerald-700 font-medium inline-flex items-center gap-1">
+                              <Check className="h-2.5 w-2.5" /> Sent via {EMAIL_PROVIDERS_META[lead.followUp.lastProviderUsed].shortName}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400">
+                              Ready to dispatch
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded font-mono font-bold text-xs tabular-nums border ${getScoreColor(
-                          lead.overallScore
-                        )}`}
-                      >
-                        {lead.overallScore}/100
-                      </span>
-                    </td>
+                      <td className="py-3.5 px-4 text-xs font-mono text-slate-500">
+                        {formatAuditDate(lead.lastAuditedAt)}
+                      </td>
 
-                    <td className="py-3.5 px-4">
-                      <select
-                        value={lead.status}
-                        onChange={(e) => onUpdateLeadStatus(lead.id, e.target.value as LeadStatus)}
-                        className="text-xs font-mono py-1 px-2 rounded-md bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                      >
-                        <option value="audited">Audited</option>
-                        <option value="drafted">Draft Ready</option>
-                        <option value="contacted">Contacted</option>
-                        <option value="replied">Replied</option>
-                        <option value="converted">Converted</option>
-                      </select>
-                    </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5 relative">
+                          {/* 1-Click Send Menu Button */}
+                          <div className="relative" ref={isMenuOpen ? quickSendRef : undefined}>
+                            <button
+                              type="button"
+                              onClick={() => setQuickSendLeadId(isMenuOpen ? null : lead.id)}
+                              title="1-Click Send via Gmail, Outlook, Yahoo, or Custom Mail"
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 text-xs font-medium transition-colors shadow-2xs"
+                            >
+                              <Send className="h-3 w-3" />
+                              <span className="hidden sm:inline">Send</span>
+                              <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+                            </button>
 
-                    <td className="py-3.5 px-4 text-xs font-mono text-slate-500">
-                      {formatAuditDate(lead.lastAuditedAt)}
-                    </td>
+                            {/* Dropdown Options for the 4 Providers */}
+                            {isMenuOpen && (
+                              <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30 text-left animate-in fade-in zoom-in-95">
+                                <div className="px-3 py-1 border-b border-slate-100 text-[10px] font-mono uppercase text-slate-400 font-semibold">
+                                  Send {touchTitle} via:
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickSend(lead, 'gmail')}
+                                  className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 text-slate-700 hover:text-red-700 transition-colors"
+                                >
+                                  <svg className="h-3.5 w-3.5 fill-current text-red-600 shrink-0" viewBox="0 0 24 24">
+                                    <path d={EMAIL_PROVIDERS_META.gmail.iconSvg} />
+                                  </svg>
+                                  <span>Gmail</span>
+                                </button>
 
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => onSelectLeadForAudit(lead)}
-                          title="View detailed scorecard"
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                        </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickSend(lead, 'outlook')}
+                                  className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-sky-50 text-slate-700 hover:text-sky-700 transition-colors"
+                                >
+                                  <svg className="h-3.5 w-3.5 fill-current text-sky-600 shrink-0" viewBox="0 0 24 24">
+                                    <path d={EMAIL_PROVIDERS_META.outlook.iconSvg} />
+                                  </svg>
+                                  <span>Outlook</span>
+                                </button>
 
-                        <button
-                          onClick={() => onSelectLeadForEmail(lead)}
-                          title="Open in Email Studio"
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
-                        >
-                          <Mail className="h-3.5 w-3.5" />
-                        </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickSend(lead, 'yahoo')}
+                                  className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-purple-50 text-slate-700 hover:text-purple-700 transition-colors"
+                                >
+                                  <svg className="h-3.5 w-3.5 fill-current text-purple-600 shrink-0" viewBox="0 0 24 24">
+                                    <path d={EMAIL_PROVIDERS_META.yahoo.iconSvg} />
+                                  </svg>
+                                  <span>Yahoo Mail</span>
+                                </button>
 
-                        <button
-                          onClick={() => onDeleteLead(lead.id)}
-                          title="Delete lead"
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickSend(lead, 'custom_smtp')}
+                                  className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 transition-colors border-t border-slate-100"
+                                >
+                                  <Mail className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                  <span>Custom Mail</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => onSelectLeadForAudit(lead)}
+                            title="View detailed scorecard"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => onSelectLeadForEmail(lead)}
+                            title="Open in Email Studio"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-blue-700 hover:bg-blue-50 transition-colors"
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                          </button>
+
+                          <button
+                            onClick={() => onDeleteLead(lead.id)}
+                            title="Delete lead"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
