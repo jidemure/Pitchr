@@ -140,6 +140,7 @@ export interface Lead {
   auditId?: string;
   campaignId?: string;
   notes?: string;
+  tags?: string[];
   followUp?: LeadFollowUpStatus;
 }
 

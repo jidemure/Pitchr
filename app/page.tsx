@@ -28,6 +28,7 @@ import {
   getStoredUserProfile,
   saveStoredUserProfile,
   clearAllStoredData,
+  updateLeadTags,
   syncLeadToSupabase
 } from '@/lib/storage';
 import { AlertCircle, CheckCircle2, Menu, Sparkles, Layers, ArrowRight, Globe } from 'lucide-react';
@@ -255,6 +256,25 @@ export default function HomePage() {
     showToast('Lead removed from CRM.');
   };
 
+  const handleUpdateLeadTags = (leadId: string, tags: string[]) => {
+    const updated = updateLeadTags(leadId, tags);
+    setLeads(updated);
+  };
+
+  const handleBulkUpdateLeadStatus = (leadIds: string[], newStatus: LeadStatus) => {
+    const newLeads = leads.map((l) => (leadIds.includes(l.id) ? { ...l, status: newStatus } : l));
+    setLeads(newLeads);
+    saveStoredLeads(newLeads);
+    showToast(`Updated ${leadIds.length} lead${leadIds.length > 1 ? 's' : ''} to ${newStatus}`);
+  };
+
+  const handleBulkDeleteLeads = (leadIds: string[]) => {
+    const newLeads = leads.filter((l) => !leadIds.includes(l.id));
+    setLeads(newLeads);
+    saveStoredLeads(newLeads);
+    showToast(`Removed ${leadIds.length} lead${leadIds.length > 1 ? 's' : ''} from CRM.`);
+  };
+
   const handleExportAllLeadsCSV = () => {
     if (leads.length === 0) return;
     const rows = [
@@ -451,6 +471,9 @@ export default function HomePage() {
                   setTeaserReport(audits[lead.auditId]);
                 }
               }}
+              onUpdateLeadTags={handleUpdateLeadTags}
+              onBulkUpdateStatus={handleBulkUpdateLeadStatus}
+              onBulkDelete={handleBulkDeleteLeads}
             />
           )}
 

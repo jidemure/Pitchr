@@ -409,3 +409,18 @@ export function updateSequenceStats(
   saveStoredSequences(updatedSequences);
   return updatedSequences;
 }
+
+export function updateLeadTags(leadId: string, tags: string[]): Lead[] {
+  const currentLeads = getStoredLeads();
+  const updated = currentLeads.map((lead) => {
+    if (lead.id === leadId) {
+      return {
+        ...lead,
+        tags,
+      };
+    }
+    return lead;
+  });
+  saveStoredLeads(updated);
+  return updated;
+}

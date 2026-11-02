@@ -2,12 +2,18 @@
 @import "tw-animate-css";
 @import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&display=swap');
 
+@theme {
+  --font-heading: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @layer base {
   :root {
-    --font-heading: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    --font-body: 'Geist', 'DM Sans', system-ui, -apple-system, sans-serif;
+    --font-heading: 'Plus Jakarta Sans', 'Inter', system-ui, -apple-system, sans-serif;
+    --font-body: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
   }

@@ -315,6 +315,20 @@ export const KanbanBoardView: React.FC<KanbanBoardViewProps> = ({
                           </span>
                         </div>
 
+                        {/* Tags if present */}
+                        {lead.tags && lead.tags.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {lead.tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="px-1.5 py-0.5 rounded text-[9px] font-medium bg-orange-50 text-orange-800 border border-orange-200/60 truncate max-w-[120px]"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+
                         {/* Card Metadata: Industry & Contact */}
                         <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1 text-[11px] text-slate-500">
                           <span className="truncate max-w-[120px] text-slate-600 font-medium">

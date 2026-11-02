@@ -16,7 +16,8 @@ import {
   CheckCircle2,
   Calendar,
   Sparkles,
-  Settings
+  Settings,
+  ChevronRight
 } from 'lucide-react';
 import { EmailSequence, OutreachTone, AuditReport, EmailProvider, UserProfile, Lead } from '@/lib/types';
 import {
@@ -54,12 +55,12 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
   const [senderName, setSenderName] = useState<string>(userProfile.senderName || 'Jordan');
   const [customOffer, setCustomOffer] = useState<string>(userProfile.defaultOffer || 'Free 2-minute mobile wireframe walkthrough');
   const [showConfig, setShowConfig] = useState<boolean>(false);
-  
+
   // Provider choice
   const [selectedProvider, setSelectedProvider] = useState<EmailProvider>(
     userProfile.preferredProvider || 'gmail'
   );
-  
+
   // Recipient email derived state with user edit override
   const defaultRecipientEmail = audit?.contactEmail
     ? audit.contactEmail
@@ -143,7 +144,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
       touchStep: currentTouch.step,
       leadId: sequence.leadId,
       senderName,
-      senderEmail: userProfile.gmailAccountEmail || userProfile.email || 'julian.veloceai@gmail.com',
+      senderEmail: userProfile.gmailAccountEmail || userProfile.email || 'alex@apexstudio.io',
       agencyName,
     };
 
@@ -152,7 +153,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
       if (!smtpConfig || !smtpConfig.host || !smtpConfig.auth?.user) {
         setSendFeedback({
           success: false,
-          message: 'Custom SMTP is not yet configured. Please enter your SMTP credentials in Settings.',
+          message: 'Custom SMTP is not configured. Please enter your SMTP credentials in Settings.',
         });
         if (onOpenSettings) onOpenSettings();
         return;
@@ -219,52 +220,60 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
 
   if (!sequence) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-sm">
-        <div className="h-12 w-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-4">
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-2xs font-sans animate-fade-in">
+        <div className="h-12 w-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-4 border border-orange-200/60">
           <Mail className="h-6 w-6" />
         </div>
-        <h3 className="text-base sm:text-lg font-bold text-slate-900 font-heading mb-2">
+        <h3 className="text-base sm:text-lg font-medium text-slate-900 font-heading mb-2">
           No Email Sequence Generated Yet
         </h3>
-        <p className="text-xs sm:text-sm text-slate-600 mb-6">
-          Scan any live website URL using the URL Scanner to automatically generate a personalized 4-touch cold outreach sequence ready to send with Gmail, Outlook, Yahoo, or Custom mail.
+        <p className="text-xs sm:text-sm text-slate-600 leading-relaxed mb-4">
+          Scan any live website URL using the Prospect Scanner to automatically synthesize a high-converting 4-touch cold outreach sequence ready to send with Gmail, Outlook, Yahoo, or Custom Mail.
         </p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Studio Header */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in font-sans">
+      {/* Studio Header Bar */}
+      <div className="bg-white rounded-2xl border border-slate-200/90 p-4 sm:p-6 shadow-2xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-500 mb-1">
-              <span>Client: {sequence.companyName}</span>
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-500 mb-1 flex-wrap">
+              <span className="font-semibold text-slate-700 whitespace-nowrap">Prospect: {sequence.companyName}</span>
               <span aria-hidden="true" className="text-slate-300">/</span>
-              <span>4-Touch Outreach & Follow-Up Sequence</span>
+              <span className="text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200 text-[10px] whitespace-nowrap">
+                4-Touch Cadence
+              </span>
             </div>
-            <h2 className="text-xl sm:text-2xl font-medium text-slate-900 tracking-tight font-heading">
+            <h1 className="text-xl sm:text-2xl font-medium text-slate-900 tracking-tight font-heading">
               Cold Outreach & Follow-up Studio
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl font-sans">
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-600 mt-1 max-w-2xl font-sans leading-normal">
               {sequence.personalizationSummary}
             </p>
           </div>
 
           {/* Action buttons */}
-          <div className="grid grid-cols-1 sm:flex sm:flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
+              type="button"
               onClick={() => setShowConfig(!showConfig)}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all shadow-xs min-h-[38px]"
+              className={`inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl border transition-all whitespace-nowrap ${
+                showConfig
+                  ? 'bg-orange-50 text-orange-900 border-orange-300 shadow-2xs font-semibold'
+                  : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-2xs'
+              }`}
             >
               <SlidersHorizontal className="h-3.5 w-3.5 text-slate-500" />
               <span>Persona & Pitch</span>
             </button>
 
             <button
+              type="button"
               onClick={handleExportCSV}
-              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all shadow-xs min-h-[38px]"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-medium rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-all shadow-2xs whitespace-nowrap"
             >
               <Download className="h-3.5 w-3.5 text-slate-500" />
               <span>Export CSV</span>
@@ -274,21 +283,21 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
 
         {/* Persona Customizer Drawer */}
         {showConfig && (
-          <div className="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-slate-100 bg-slate-50/70 p-3.5 sm:p-4 rounded-xl border border-slate-200">
+          <div className="mt-4 pt-4 border-t border-slate-100 bg-slate-50/80 p-4 rounded-xl border border-slate-200/80 animate-fade-in">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 font-mono">
                 Outreach Configuration
               </span>
-              <span className="text-[11px] text-slate-500">Fine-tune tone & offer</span>
+              <span className="text-[11px] text-slate-500 whitespace-nowrap">Fine-tune tone, sender & frictionless offer</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Outreach Tone</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1 whitespace-nowrap">Outreach Tone</label>
                 <select
                   value={activeTone}
                   onChange={(e) => setActiveTone(e.target.value as OutreachTone)}
-                  className="w-full text-xs p-2.5 rounded-lg bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
+                  className="w-full text-xs p-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 >
                   <option value="boutique_agency">Boutique Agency (High Craft)</option>
                   <option value="freelancer">Freelance Developer (Peer-to-Peer)</option>
@@ -297,282 +306,65 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
               </div>
 
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Agency Name</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1 whitespace-nowrap">Agency Name</label>
                 <input
                   type="text"
                   value={agencyName}
                   onChange={(e) => setAgencyName(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-lg bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
+                  className="w-full text-xs p-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Sender Name</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1 whitespace-nowrap">Sender Name</label>
                 <input
                   type="text"
                   value={senderName}
                   onChange={(e) => setSenderName(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-lg bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
+                  className="w-full text-xs p-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium text-slate-600 block mb-1">Frictionless Offer</label>
+                <label className="text-xs font-medium text-slate-600 block mb-1 whitespace-nowrap">Frictionless Offer</label>
                 <input
                   type="text"
                   value={customOffer}
                   onChange={(e) => setCustomOffer(e.target.value)}
-                  className="w-full text-xs p-2.5 rounded-lg bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
+                  className="w-full text-xs p-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 />
               </div>
             </div>
 
             <div className="mt-3 flex justify-end">
               <button
+                type="button"
                 onClick={() => onRegenerateSequence(activeTone, agencyName, senderName, customOffer)}
                 disabled={isGenerating}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50 min-h-[38px]"
+                className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium rounded-xl bg-slate-900 text-white hover:bg-slate-800 transition-colors disabled:opacity-50 whitespace-nowrap shadow-xs"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isGenerating ? 'animate-spin' : ''}`} />
-                <span>{isGenerating ? 'Regenerating...' : 'Regenerate Sequence with New Settings'}</span>
+                <span>{isGenerating ? 'Regenerating sequence...' : 'Update & Regenerate'}</span>
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {/* DISPATCH & PROVIDER SELECTION BAR (Gmail, Outlook, Yahoo, Custom Mail) */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div>
-            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold block">
-              CHOOSE EMAIL PROVIDER
-            </span>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Select which service you want to use for dispatching this cold pitch and its scheduled follow-ups.
-            </p>
-          </div>
-
-          {onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-orange-600 font-medium transition-colors"
-            >
-              <Settings className="h-3.5 w-3.5 text-slate-400" />
-              <span>Configure Providers & SMTP</span>
-            </button>
-          )}
-        </div>
-
-        {/* The 4 Distinct Provider Pills */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-          {/* 1. Gmail */}
-          <button
-            type="button"
-            onClick={() => setSelectedProvider('gmail')}
-            className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
-              selectedProvider === 'gmail'
-                ? 'border-red-500 bg-red-50/70 shadow-xs ring-1 ring-red-400 text-slate-900'
-                : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-            }`}
-          >
-            <div className="p-1.5 rounded-lg bg-red-50 border border-red-200 text-red-600 shrink-0">
-              <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                <path d={EMAIL_PROVIDERS_META.gmail.iconSvg} />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <span className="text-xs font-bold block truncate">Gmail</span>
-              <span className="text-[10px] text-slate-500 block truncate">1-Click Web Compose</span>
-            </div>
-          </button>
-
-          {/* 2. Outlook */}
-          <button
-            type="button"
-            onClick={() => setSelectedProvider('outlook')}
-            className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
-              selectedProvider === 'outlook'
-                ? 'border-sky-500 bg-sky-50/70 shadow-xs ring-1 ring-sky-400 text-slate-900'
-                : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-            }`}
-          >
-            <div className="p-1.5 rounded-lg bg-sky-50 border border-sky-200 text-sky-600 shrink-0">
-              <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                <path d={EMAIL_PROVIDERS_META.outlook.iconSvg} />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <span className="text-xs font-bold block truncate">Outlook</span>
-              <span className="text-[10px] text-slate-500 block truncate">Office 365 Web</span>
-            </div>
-          </button>
-
-          {/* 3. Yahoo */}
-          <button
-            type="button"
-            onClick={() => setSelectedProvider('yahoo')}
-            className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
-              selectedProvider === 'yahoo'
-                ? 'border-purple-500 bg-purple-50/70 shadow-xs ring-1 ring-purple-400 text-slate-900'
-                : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-            }`}
-          >
-            <div className="p-1.5 rounded-lg bg-purple-50 border border-purple-200 text-purple-600 shrink-0">
-              <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
-                <path d={EMAIL_PROVIDERS_META.yahoo.iconSvg} />
-              </svg>
-            </div>
-            <div className="min-w-0">
-              <span className="text-xs font-bold block truncate">Yahoo Mail</span>
-              <span className="text-[10px] text-slate-500 block truncate">Yahoo Compose</span>
-            </div>
-          </button>
-
-          {/* 4. Custom Mail / SMTP */}
-          <button
-            type="button"
-            onClick={() => setSelectedProvider('custom_smtp')}
-            className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
-              selectedProvider === 'custom_smtp'
-                ? 'border-orange-500 bg-orange-50/70 shadow-xs ring-1 ring-orange-400 text-slate-900'
-                : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-            }`}
-          >
-            <div className="p-1.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 shrink-0">
-              <Server className="h-4 w-4" />
-            </div>
-            <div className="min-w-0">
-              <span className="text-xs font-bold block truncate">Custom Mail</span>
-              <span className="text-[10px] text-slate-500 block truncate">
-                {userProfile.customSmtp?.configured ? 'SMTP Connected' : 'Dedicated SMTP'}
-              </span>
-            </div>
-          </button>
-        </div>
-
-        {/* Recipient Target Email & Dispatch Bar */}
-        <div className="pt-3 border-t border-slate-100 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            <span className="text-xs font-semibold text-slate-600 font-mono whitespace-nowrap">To:</span>
-            <input
-              type="email"
-              value={recipientEmail}
-              onChange={(e) => setEditedRecipientEmail(e.target.value)}
-              placeholder="recipient@domain.com"
-              className="flex-1 px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono min-h-[38px]"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            {/* Primary Dispatch Action */}
-            <button
-              onClick={() => handleDispatchEmail()}
-              disabled={isSendingSmtp}
-              className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold rounded-xl text-white shadow-xs transition-all active:scale-[0.98] min-h-[40px] ${
-                selectedProvider === 'gmail'
-                  ? 'bg-red-600 hover:bg-red-500'
-                  : selectedProvider === 'outlook'
-                  ? 'bg-sky-600 hover:bg-sky-500'
-                  : selectedProvider === 'yahoo'
-                  ? 'bg-purple-600 hover:bg-purple-500'
-                  : 'bg-orange-500 hover:bg-orange-600'
-              }`}
-            >
-              {isSendingSmtp ? (
-                <>
-                  <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                  <span>Sending via SMTP...</span>
-                </>
-              ) : (
-                <>
-                  <Send className="h-3.5 w-3.5" />
-                  <span>
-                    Send {getTouchLabel(selectedTouchStep)} via {EMAIL_PROVIDERS_META[selectedProvider].shortName}
-                  </span>
-                </>
-              )}
-            </button>
-
-            {/* Quick 1-Click Launch for all 3 other providers without switching primary */}
-            <div className="hidden sm:flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-              <span className="text-[10px] font-mono text-slate-500 px-1.5 uppercase">Quick:</span>
-              <button
-                type="button"
-                onClick={() => handleDispatchEmail('gmail')}
-                title="Direct launch in Gmail"
-                className="px-2 py-1 text-[11px] font-medium rounded-lg hover:bg-white text-slate-700 hover:text-red-600 transition-colors"
-              >
-                Gmail
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDispatchEmail('outlook')}
-                title="Direct launch in Outlook"
-                className="px-2 py-1 text-[11px] font-medium rounded-lg hover:bg-white text-slate-700 hover:text-sky-600 transition-colors"
-              >
-                Outlook
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDispatchEmail('yahoo')}
-                title="Direct launch in Yahoo"
-                className="px-2 py-1 text-[11px] font-medium rounded-lg hover:bg-white text-slate-700 hover:text-purple-600 transition-colors"
-              >
-                Yahoo
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDispatchEmail('mailto')}
-                title="Open in default mail client"
-                className="px-2 py-1 text-[11px] font-medium rounded-lg hover:bg-white text-slate-700 hover:text-slate-900 transition-colors"
-              >
-                Mail App
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Feedback message */}
-        {sendFeedback && (
-          <div
-            className={`p-3 rounded-xl text-xs flex items-center justify-between border ${
-              sendFeedback.success
-                ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                : 'bg-rose-50 text-rose-900 border-rose-200'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              {sendFeedback.success ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-              ) : (
-                <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
-              )}
-              <span>{sendFeedback.message}</span>
-            </div>
-            <button
-              onClick={() => setSendFeedback(null)}
-              className="text-[11px] underline ml-2 opacity-80 hover:opacity-100"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Main Touch Tabs & Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Sequence Stepper: Follow-ups Navigation Cadence */}
-        <div className="lg:col-span-1 space-y-2">
+      {/* Main Workspace Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        {/* Left Column: Follow-up Cadence Rail (4 cols) */}
+        <div className="lg:col-span-4 space-y-3">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Sequence Follow-ups
+            <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 font-mono whitespace-nowrap">
+              Follow-up Sequence
             </span>
-            <span className="text-[10px] font-mono text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
+            <span className="text-[10px] font-mono text-orange-800 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200/80 whitespace-nowrap">
               4 Steps
             </span>
           </div>
 
+          {/* Stepper Cards */}
           <div className="flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-none">
             {sequence.touches.map((touch) => {
               const isSelected = touch.step === selectedTouchStep;
@@ -582,44 +374,43 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                   key={touch.step}
                   onClick={() => handleStepSelect(touch.step)}
                   type="button"
-                  className={`text-left p-3 rounded-xl border transition-all flex flex-col justify-between shrink-0 min-w-[200px] lg:min-w-0 lg:w-full min-h-[76px] ${
+                  className={`text-left p-3.5 rounded-2xl border transition-all flex flex-col justify-between shrink-0 min-w-[220px] lg:min-w-0 lg:w-full ${
                     isSelected
                       ? 'bg-orange-50/90 border-orange-400 shadow-xs ring-1 ring-orange-300'
-                      : 'bg-white border-slate-200 hover:border-slate-300'
+                      : 'bg-white border-slate-200/90 hover:border-slate-300 shadow-2xs'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-1 w-full gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`text-xs font-mono font-bold ${
-                          isSelected ? 'text-orange-800' : 'text-slate-700'
-                        }`}
-                      >
-                        {getTouchLabel(touch.step)}
-                      </span>
-                    </div>
-
-                    <span className="text-[10px] text-slate-500 font-mono shrink-0">
-                      {touch.timing.split(' ')[0]}
+                  <div className="flex items-center justify-between mb-1.5 w-full gap-2">
+                    <span
+                      className={`text-xs font-mono font-bold whitespace-nowrap ${
+                        isSelected ? 'text-orange-900' : 'text-slate-800'
+                      }`}
+                    >
+                      {getTouchLabel(touch.step)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono shrink-0 whitespace-nowrap">
+                      {touch.timing}
                     </span>
                   </div>
 
-                  <h4
+                  <h3
                     className={`text-xs font-semibold truncate w-full ${
                       isSelected ? 'text-slate-950 font-heading' : 'text-slate-700'
                     }`}
                   >
                     {touch.title}
-                  </h4>
+                  </h3>
 
-                  <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500">
-                    <span>{touch.step === 1 ? 'Diagnostic hook' : `Follow-up sequence`}</span>
+                  <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 w-full">
+                    <span className="truncate max-w-[120px] text-slate-400">
+                      {touch.step === 1 ? 'Diagnostic hook' : 'Value follow-up'}
+                    </span>
                     {sentInfo ? (
-                      <span className="inline-flex items-center gap-1 text-orange-700 font-mono font-medium">
+                      <span className="inline-flex items-center gap-1 text-emerald-700 font-mono font-semibold whitespace-nowrap">
                         <Check className="h-2.5 w-2.5" /> Sent ({sentInfo.provider})
                       </span>
                     ) : (
-                      <span className="text-slate-400">Ready</span>
+                      <span className="text-slate-400 font-mono whitespace-nowrap">Ready</span>
                     )}
                   </div>
                 </button>
@@ -628,165 +419,338 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
           </div>
 
           {/* Quick Pitch Summary Box */}
-          <div className="hidden lg:block p-3.5 rounded-xl bg-slate-100/80 border border-slate-200 mt-4 text-xs">
-            <span className="font-semibold text-slate-700 block mb-1">Audit Teardown Pitch Angle:</span>
-            <p className="text-slate-600 leading-normal">
+          <div className="p-4 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-1.5">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold block whitespace-nowrap">
+              Audit Teardown Pitch Angle
+            </span>
+            <p className="text-xs text-slate-700 leading-relaxed">
               {sequence.customRedesignPitch}
             </p>
           </div>
         </div>
 
-        {/* Right Column: Active Email View */}
+        {/* Right Column: Email Composer Canvas & Dispatch Bar (8 cols) */}
         {currentTouch && (
-          <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 space-y-4 sm:space-y-5">
-            {/* Step Header Badge & Provider Quick Indicator */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-orange-800 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200/80">
-                  {getTouchLabel(currentTouch.step)} · {currentTouch.timing}
-                </span>
-                <span className="text-xs text-slate-500 hidden sm:inline">
-                  {currentTouch.title}
-                </span>
+          <div className="lg:col-span-8 space-y-4">
+            {/* Provider Selection Segmented Bar */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 p-4 shadow-2xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-semibold block whitespace-nowrap">
+                    Choose Email Provider
+                  </span>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Select your preferred client to launch or send this touch with 1 click.
+                  </p>
+                </div>
+
+                {onOpenSettings && (
+                  <button
+                    type="button"
+                    onClick={onOpenSettings}
+                    className="inline-flex items-center gap-1.5 text-xs text-slate-500 hover:text-orange-600 font-medium transition-colors whitespace-nowrap"
+                  >
+                    <Settings className="h-3.5 w-3.5 text-slate-400" />
+                    <span>SMTP Settings</span>
+                  </button>
+                )}
               </div>
 
-              <div className="flex items-center gap-2">
+              {/* 4 Branded Provider Pills */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {/* 1. Gmail */}
                 <button
                   type="button"
-                  onClick={() => recordTouchSent(currentTouch.step, selectedProvider)}
-                  className="text-xs text-slate-500 hover:text-orange-600 font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50"
-                  title="Manually mark this touch as sent"
+                  onClick={() => setSelectedProvider('gmail')}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left whitespace-nowrap ${
+                    selectedProvider === 'gmail'
+                      ? 'border-red-400 bg-red-50/70 ring-1 ring-red-300 text-slate-900 shadow-2xs font-semibold'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
                 >
-                  <Check className="h-3 w-3" />
-                  <span>Mark Sent</span>
+                  <div className="p-1 rounded-lg bg-red-50 text-red-600 shrink-0">
+                    <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d={EMAIL_PROVIDERS_META.gmail.iconSvg} />
+                    </svg>
+                  </div>
+                  <span className="text-xs truncate">Gmail</span>
+                </button>
+
+                {/* 2. Outlook */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProvider('outlook')}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left whitespace-nowrap ${
+                    selectedProvider === 'outlook'
+                      ? 'border-sky-400 bg-sky-50/70 ring-1 ring-sky-300 text-slate-900 shadow-2xs font-semibold'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <div className="p-1 rounded-lg bg-sky-50 text-sky-600 shrink-0">
+                    <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d={EMAIL_PROVIDERS_META.outlook.iconSvg} />
+                    </svg>
+                  </div>
+                  <span className="text-xs truncate">Outlook</span>
+                </button>
+
+                {/* 3. Yahoo */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProvider('yahoo')}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left whitespace-nowrap ${
+                    selectedProvider === 'yahoo'
+                      ? 'border-purple-400 bg-purple-50/70 ring-1 ring-purple-300 text-slate-900 shadow-2xs font-semibold'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <div className="p-1 rounded-lg bg-purple-50 text-purple-600 shrink-0">
+                    <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                      <path d={EMAIL_PROVIDERS_META.yahoo.iconSvg} />
+                    </svg>
+                  </div>
+                  <span className="text-xs truncate">Yahoo Mail</span>
+                </button>
+
+                {/* 4. Custom Mail */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProvider('custom_smtp')}
+                  className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all text-left whitespace-nowrap ${
+                    selectedProvider === 'custom_smtp'
+                      ? 'border-orange-400 bg-orange-50/70 ring-1 ring-orange-300 text-slate-900 shadow-2xs font-semibold'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <div className="p-1 rounded-lg bg-orange-50 text-orange-600 shrink-0">
+                    <Server className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-xs truncate">Custom Mail</span>
                 </button>
               </div>
-            </div>
 
-            {/* Subject Lines A/B Selection */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Subject Line Options (Tap to select for send)
-                </span>
-                <span className="text-[11px] text-slate-400 font-mono">A/B Testing</span>
-              </div>
+              {/* Recipient Target & Primary Dispatch Button */}
+              <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex-1 flex items-center gap-2 min-w-0">
+                  <span className="text-xs font-semibold text-slate-500 font-mono whitespace-nowrap">To:</span>
+                  <input
+                    type="email"
+                    value={recipientEmail}
+                    onChange={(e) => setEditedRecipientEmail(e.target.value)}
+                    placeholder="contact@domain.com"
+                    className="flex-1 px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-orange-500 font-mono"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                {currentTouch.subjectLines.map((subj, sIdx) => {
-                  const isSubjectActive = selectedSubjectIndex === sIdx;
-                  return (
-                    <div
-                      key={sIdx}
-                      onClick={() => setSelectedSubjectIndex(sIdx)}
-                      className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border cursor-pointer transition-all min-h-[44px] ${
-                        isSubjectActive
-                          ? 'bg-orange-50/70 border-orange-300 text-slate-900 font-medium'
-                          : 'bg-slate-50/60 border-slate-200 text-slate-700 hover:bg-slate-100/60'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 text-xs sm:text-sm min-w-0">
-                        <span className="font-mono text-xs text-slate-400 shrink-0">
-                          {String.fromCharCode(65 + sIdx)}:
-                        </span>
-                        <span className="truncate">{subj}</span>
-                      </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleCopy(subj, 'subject', sIdx);
-                        }}
-                        title="Copy subject line"
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white transition-colors shrink-0 ml-2"
-                        aria-label="Copy subject line"
-                      >
-                        {copiedSubjectIndex === sIdx ? (
-                          <Check className="h-4 w-4 text-orange-600" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Email Body Content */}
-            <div className="pt-1">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                  Email Message Body
-                </span>
                 <button
-                  onClick={() => handleCopy(getFullBodyText(), 'body')}
-                  className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-orange-600 font-medium transition-colors min-h-[32px]"
+                  type="button"
+                  onClick={() => handleDispatchEmail()}
+                  disabled={isSendingSmtp}
+                  className={`inline-flex items-center justify-center gap-2 px-5 py-2 text-xs font-semibold rounded-xl text-white shadow-xs transition-all active:scale-[0.98] whitespace-nowrap shrink-0 ${
+                    selectedProvider === 'gmail'
+                      ? 'bg-red-600 hover:bg-red-500'
+                      : selectedProvider === 'outlook'
+                      ? 'bg-sky-600 hover:bg-sky-500'
+                      : selectedProvider === 'yahoo'
+                      ? 'bg-purple-600 hover:bg-purple-500'
+                      : 'bg-orange-500 hover:bg-orange-600'
+                  }`}
                 >
-                  {copiedBody ? (
+                  {isSendingSmtp ? (
                     <>
-                      <Check className="h-3.5 w-3.5 text-orange-600" />
-                      <span className="text-orange-700">Copied!</span>
+                      <span className="h-3.5 w-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      <span>Sending via SMTP...</span>
                     </>
                   ) : (
                     <>
-                      <Copy className="h-3.5 w-3.5" />
-                      <span>Copy Full Email</span>
+                      <Send className="h-3.5 w-3.5" />
+                      <span>
+                        Send {getTouchLabel(selectedTouchStep)} via {EMAIL_PROVIDERS_META[selectedProvider].shortName}
+                      </span>
                     </>
                   )}
                 </button>
               </div>
 
-              <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 sm:p-5 font-sans text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line select-text">
-                {currentTouch.body}
-                {!currentTouch.body.includes(currentTouch.cta) && (
-                  <>
-                    {'\n\n'}
-                    <span className="font-medium text-orange-950 bg-orange-50/80 px-1 py-0.5 rounded">
-                      {currentTouch.cta}
-                    </span>
-                  </>
-                )}
-                {'\n\n'}
-                <span className="text-slate-500 text-xs">
-                  Best,{'\n'}
-                  {senderName}{'\n'}
-                  {agencyName}
-                </span>
-              </div>
+              {/* Feedback Alert */}
+              {sendFeedback && (
+                <div
+                  className={`p-3 rounded-xl text-xs flex items-center justify-between border ${
+                    sendFeedback.success
+                      ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
+                      : 'bg-rose-50 text-rose-900 border-rose-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    {sendFeedback.success ? (
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-4 w-4 text-rose-600 shrink-0" />
+                    )}
+                    <span>{sendFeedback.message}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSendFeedback(null)}
+                    className="text-[11px] underline ml-2 opacity-80 hover:opacity-100"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              )}
             </div>
 
-            {/* Bottom Stepper Navigation */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-slate-500 font-mono text-[11px] truncate max-w-[160px] sm:max-w-none">
-                {currentTouch.timing} · {currentTouch.title}
-              </span>
+            {/* Email Composer Mockup Canvas */}
+            <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs overflow-hidden">
+              {/* Mockup Header Toolbar */}
+              <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-orange-900 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200/80 whitespace-nowrap">
+                    {getTouchLabel(currentTouch.step)} · {currentTouch.timing}
+                  </span>
+                  <span className="text-xs text-slate-500 hidden sm:inline truncate max-w-sm">
+                    {currentTouch.title}
+                  </span>
+                </div>
 
-              <div className="flex items-center gap-3">
-                {selectedTouchStep > 1 && (
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => handleStepSelect(selectedTouchStep - 1)}
-                    className="font-medium text-slate-600 hover:text-slate-900 transition-colors py-1 shrink-0"
+                    type="button"
+                    onClick={() => recordTouchSent(currentTouch.step, selectedProvider)}
+                    className="text-xs text-slate-600 hover:text-slate-900 font-medium inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors whitespace-nowrap shadow-2xs"
+                    title="Manually mark this touch as dispatched"
                   >
-                    ← Previous Touch
+                    <Check className="h-3 w-3 text-emerald-600" />
+                    <span>Mark Sent</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(getFullBodyText(), 'body')}
+                    className="text-xs text-slate-600 hover:text-slate-900 font-medium inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors whitespace-nowrap shadow-2xs"
+                  >
+                    {copiedBody ? (
+                      <>
+                        <Check className="h-3 w-3 text-orange-600" />
+                        <span className="text-orange-700">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" />
+                        <span>Copy Email</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Subject Line A/B Selector */}
+              <div className="p-4 sm:p-5 border-b border-slate-100 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 font-semibold whitespace-nowrap">
+                    Subject Line A/B Test (Select to send)
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">Click to activate</span>
+                </div>
+
+                <div className="space-y-2">
+                  {currentTouch.subjectLines.map((subj, sIdx) => {
+                    const isSubjectActive = selectedSubjectIndex === sIdx;
+                    return (
+                      <div
+                        key={sIdx}
+                        onClick={() => setSelectedSubjectIndex(sIdx)}
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                          isSubjectActive
+                            ? 'bg-orange-50/70 border-orange-300 text-slate-900 font-medium shadow-2xs'
+                            : 'bg-slate-50/60 border-slate-200/80 text-slate-700 hover:bg-slate-100/60'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 text-xs sm:text-sm min-w-0">
+                          <span className="font-mono text-xs font-bold text-slate-400 shrink-0 whitespace-nowrap">
+                            Option {String.fromCharCode(65 + sIdx)}:
+                          </span>
+                          <span className="truncate">{subj}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(subj, 'subject', sIdx);
+                          }}
+                          title="Copy subject line"
+                          className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-white transition-colors shrink-0 ml-2"
+                        >
+                          {copiedSubjectIndex === sIdx ? (
+                            <Check className="h-3.5 w-3.5 text-orange-600" />
+                          ) : (
+                            <Copy className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Email Body Prose View */}
+              <div className="p-5 sm:p-6 space-y-4">
+                <div className="text-xs sm:text-sm text-slate-800 leading-relaxed font-sans space-y-3 whitespace-pre-line select-text">
+                  {currentTouch.body}
+                </div>
+
+                {/* Callout Offer CTA */}
+                {!currentTouch.body.includes(currentTouch.cta) && (
+                  <div className="p-3.5 rounded-xl bg-orange-50/80 border border-orange-200/80 text-xs sm:text-sm font-medium text-orange-950 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-orange-600 shrink-0" />
+                    <span>{currentTouch.cta}</span>
+                  </div>
                 )}
 
-                {selectedTouchStep < sequence.touches.length ? (
-                  <button
-                    onClick={() => handleStepSelect(selectedTouchStep + 1)}
-                    className="inline-flex items-center gap-1 font-semibold text-orange-600 hover:text-orange-700 transition-colors py-1 shrink-0"
-                  >
-                    <span>Next Follow-up ({getTouchLabel(selectedTouchStep + 1)})</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleStepSelect(1)}
-                    className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-800 transition-colors py-1 shrink-0"
-                  >
-                    <span>Back to Touch #1</span>
-                  </button>
-                )}
+                {/* Signature */}
+                <div className="pt-3 border-t border-slate-100 text-xs text-slate-500 font-sans space-y-0.5">
+                  <span className="block font-medium text-slate-700">Best regards,</span>
+                  <span className="block text-slate-800 font-semibold">{senderName}</span>
+                  <span className="block text-slate-500">{agencyName}</span>
+                </div>
+              </div>
+
+              {/* Step Navigation Footer */}
+              <div className="p-4 border-t border-slate-100 flex items-center justify-between text-xs bg-slate-50/40">
+                <span className="text-slate-500 font-mono text-[11px] truncate whitespace-nowrap">
+                  {currentTouch.timing} · {currentTouch.title}
+                </span>
+
+                <div className="flex items-center gap-3">
+                  {selectedTouchStep > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleStepSelect(selectedTouchStep - 1)}
+                      className="font-medium text-slate-600 hover:text-slate-900 transition-colors py-1 whitespace-nowrap"
+                    >
+                      ← Previous Touch
+                    </button>
+                  )}
+
+                  {selectedTouchStep < sequence.touches.length ? (
+                    <button
+                      type="button"
+                      onClick={() => handleStepSelect(selectedTouchStep + 1)}
+                      className="inline-flex items-center gap-1 font-semibold text-orange-600 hover:text-orange-700 transition-colors py-1 whitespace-nowrap"
+                    >
+                      <span>Next Follow-up ({getTouchLabel(selectedTouchStep + 1)})</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleStepSelect(1)}
+                      className="inline-flex items-center gap-1 font-semibold text-slate-600 hover:text-slate-800 transition-colors py-1 whitespace-nowrap"
+                    >
+                      <span>Back to Touch #1</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
