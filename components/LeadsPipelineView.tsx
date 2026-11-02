@@ -501,8 +501,20 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
             <tbody className="divide-y divide-slate-100">
               {filteredLeads.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-500 text-xs">
-                    No leads found matching your search. Analyze a website in the Auditor tab to populate your CRM.
+                  <td colSpan={6} className="py-14 text-center text-slate-500 text-xs">
+                    <div className="flex flex-col items-center justify-center space-y-2">
+                      <div className="p-2.5 bg-slate-100 rounded-xl text-slate-400">
+                        <Layers className="h-5 w-5" />
+                      </div>
+                      <p className="font-semibold text-slate-800 text-sm">
+                        {leads.length === 0 ? 'Your CRM pipeline is empty' : 'No leads match your filter'}
+                      </p>
+                      <p className="text-slate-500 max-w-sm">
+                        {leads.length === 0
+                          ? 'Scan any live website URL to automatically add prospects, health scores, and cold pitch drafts.'
+                          : 'Try clearing the search query or status filters to view all leads.'}
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (

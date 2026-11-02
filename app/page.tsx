@@ -26,6 +26,7 @@ import {
   getStoredSupabaseConfig,
   getStoredUserProfile,
   saveStoredUserProfile,
+  clearAllStoredData,
   syncLeadToSupabase
 } from '@/lib/storage';
 import { AlertCircle, CheckCircle2, Menu, Sparkles, Layers, ArrowRight, Globe } from 'lucide-react';
@@ -37,7 +38,7 @@ export default function HomePage() {
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-  // Deterministic initial state shared between SSR and client initial hydration
+  // Deterministic initial state: 100% live data (starts empty)
   const [leads, setLeads] = useState<Lead[]>(DEFAULT_SEED_LEADS);
   const [audits, setAudits] = useState<Record<string, AuditReport>>(DEFAULT_SEED_AUDITS);
   const [sequences, setSequences] = useState<Record<string, EmailSequence>>(DEFAULT_SEED_SEQUENCES);
@@ -48,9 +49,9 @@ export default function HomePage() {
     syncEnabled: false,
   });
 
-  // Current active working entities
-  const [currentAudit, setCurrentAudit] = useState<AuditReport | null>(DEFAULT_SEED_AUDITS['audit-guthrie'] || DEFAULT_SEED_AUDITS['audit-seed-1'] || null);
-  const [currentSequence, setCurrentSequence] = useState<EmailSequence | null>(DEFAULT_SEED_SEQUENCES['seq-guthrie'] || DEFAULT_SEED_SEQUENCES['seq-seed-1'] || null);
+  // Current active working entities (populated upon running live scans)
+  const [currentAudit, setCurrentAudit] = useState<AuditReport | null>(null);
+  const [currentSequence, setCurrentSequence] = useState<EmailSequence | null>(null);
 
   // Loading & Modal UI states
   const [isAuditing, setIsAuditing] = useState(false);
@@ -123,9 +124,9 @@ export default function HomePage() {
           body: JSON.stringify({
             audit: report,
             tone: 'boutique_agency',
-            agencyName: 'Apex Digital Studio',
-            senderName: 'Alex',
-            customOffer: 'Free 2-minute mobile wireframe walkthrough',
+            agencyName: userProfile.agencyName || 'Apex Digital Studio',
+            senderName: userProfile.senderName || 'Tariq',
+            customOffer: userProfile.defaultOffer || 'Free 2-minute mobile wireframe walkthrough',
           }),
         });
 
@@ -259,6 +260,18 @@ export default function HomePage() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  const handleClearAllData = () => {
+    clearAllStoredData();
+    setLeads([]);
+    setAudits({});
+    setSequences({});
+    setCurrentAudit(null);
+    setCurrentSequence(null);
+    setIsInWorkspace(false);
+    setActiveTab('scanner');
+    showToast('All local data wiped. Ready for fresh live scans.');
   };
 
   return (
@@ -509,6 +522,7 @@ export default function HomePage() {
         }}
         onOpenSupabaseModal={() => setIsSupabaseModalOpen(true)}
         isSupabaseConnected={supabaseConfig.isConnected}
+        onClearAllData={handleClearAllData}
       />
     </div>
   );

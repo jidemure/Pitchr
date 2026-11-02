@@ -97,10 +97,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-semibold font-mono text-slate-900">
-            {avgScore}<span className="text-base text-slate-400 font-normal">/100</span>
+            {avgScore > 0 ? (
+              <>
+                {avgScore}<span className="text-base text-slate-400 font-normal">/100</span>
+              </>
+            ) : (
+              <span className="text-slate-400 font-normal text-2xl">--</span>
+            )}
           </div>
           <p className="text-[11px] text-slate-500">
-            {lowHealthCount} candidates need redesign
+            {lowHealthCount > 0 ? `${lowHealthCount} candidates need redesign` : 'No scans performed yet'}
           </p>
         </div>
 
@@ -133,7 +139,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
           </div>
           <div className="text-2xl sm:text-3xl font-semibold font-mono text-slate-900">
-            38%
+            {totalAudits > 0 ? '38%' : '--'}
           </div>
           <p className="text-[11px] text-slate-500">
             With technical teardown hooks
@@ -173,47 +179,72 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {leads.map((lead) => {
-                const cleanDomain = lead.url.replace(/^https?:\/\//, '').replace(/^www\./, '');
-                return (
-                  <tr key={lead.id} className="hover:bg-slate-50/70 transition-colors group">
-                    <td className="py-3 font-mono text-slate-500 whitespace-nowrap">
-                      {formatAuditDate(lead.lastAuditedAt || lead.createdAt)}
-                    </td>
-                    <td className="py-3">
-                      <div className="font-medium text-slate-800">{lead.companyName}</div>
-                      <div className="text-[11px] text-slate-400 font-mono truncate max-w-[200px]">
-                        {cleanDomain}
+              {leads.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-slate-500">
+                    <div className="flex flex-col items-center justify-center space-y-2.5 max-w-sm mx-auto">
+                      <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-700">
+                        <Globe className="h-5 w-5" />
                       </div>
-                    </td>
-                    <td className="py-3">
-                      <span
-                        className={`inline-block px-2 py-0.5 rounded font-mono font-semibold text-xs ${
-                          lead.overallScore >= 70
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                            : lead.overallScore >= 50
-                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                            : 'bg-rose-50 text-rose-700 border border-rose-200'
-                        }`}
-                      >
-                        {lead.overallScore}/100
-                      </span>
-                    </td>
-                    <td className="py-3 text-slate-500">
-                      {lead.contactEmail || `contact@${cleanDomain}`}
-                    </td>
-                    <td className="py-3 text-right whitespace-nowrap">
+                      <p className="font-semibold text-slate-900 text-sm">
+                        No live websites scanned yet
+                      </p>
+                      <p className="text-xs text-slate-500 text-center leading-relaxed">
+                        Enter any live website URL on the scanner to generate your first audit diagnostics, health scores, and cold outreach sequence.
+                      </p>
                       <button
-                        onClick={() => onSelectLeadForAuditModal(lead)}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-700 font-medium rounded-lg text-xs transition-colors"
+                        onClick={onNavigateToScanner}
+                        className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition-all shadow-xs"
                       >
-                        <span>Open Modal</span>
-                        <ArrowRight className="h-3 w-3" />
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>Run First Live Scan</span>
                       </button>
-                    </td>
-                  </tr>
-                );
-              })}
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                leads.map((lead) => {
+                  const cleanDomain = lead.url.replace(/^https?:\/\//, '').replace(/^www\./, '');
+                  return (
+                    <tr key={lead.id} className="hover:bg-slate-50/70 transition-colors group">
+                      <td className="py-3 font-mono text-slate-500 whitespace-nowrap">
+                        {formatAuditDate(lead.lastAuditedAt || lead.createdAt)}
+                      </td>
+                      <td className="py-3">
+                        <div className="font-medium text-slate-800">{lead.companyName}</div>
+                        <div className="text-[11px] text-slate-400 font-mono truncate max-w-[200px]">
+                          {cleanDomain}
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <span
+                          className={`inline-block px-2 py-0.5 rounded font-mono font-semibold text-xs ${
+                            lead.overallScore >= 70
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : lead.overallScore >= 50
+                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                              : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          {lead.overallScore}/100
+                        </span>
+                      </td>
+                      <td className="py-3 text-slate-500">
+                        {lead.contactEmail || `contact@${cleanDomain}`}
+                      </td>
+                      <td className="py-3 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => onSelectLeadForAuditModal(lead)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-700 font-medium rounded-lg text-xs transition-colors"
+                        >
+                          <span>Open Modal</span>
+                          <ArrowRight className="h-3 w-3" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>

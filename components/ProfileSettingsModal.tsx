@@ -24,6 +24,7 @@ interface ProfileSettingsModalProps {
   onLogout: () => void;
   onOpenSupabaseModal: () => void;
   isSupabaseConnected: boolean;
+  onClearAllData?: () => void;
 }
 
 export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
@@ -34,6 +35,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   onLogout,
   onOpenSupabaseModal,
   isSupabaseConnected,
+  onClearAllData,
 }) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'settings' | 'logout'>('profile');
 
@@ -332,6 +334,33 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                   Configure DB
                 </button>
               </div>
+
+              {/* Fresh Start / Reset Data Option */}
+              {onClearAllData && (
+                <div className="p-3.5 rounded-xl border border-rose-200/80 bg-rose-50/40 flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-semibold text-rose-900 block font-heading">
+                      Live Data Clean State
+                    </span>
+                    <span className="text-[11px] text-rose-700/80">
+                      Clear all cached leads, scans, and sequences to start 100% fresh.
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm('Clear all stored leads and sequences?')) {
+                        onClose();
+                        onClearAllData();
+                      }
+                    }}
+                    className="px-3 py-1.5 text-xs font-medium rounded-lg border border-rose-300 bg-white hover:bg-rose-100 text-rose-700 shadow-2xs transition-colors shrink-0"
+                  >
+                    Clear All Data
+                  </button>
+                </div>
+              )}
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
                 <button

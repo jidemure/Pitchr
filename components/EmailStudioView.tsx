@@ -102,7 +102,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
           No Email Sequence Generated Yet
         </h3>
         <p className="text-xs sm:text-sm text-slate-600 mb-6">
-          Analyze a prospect website in the Auditor tab, then click &quot;Generate Cold Emails&quot; to synthesize a personalized 4-touch outreach sequence.
+          Scan any live website URL using the URL Scanner to automatically generate a personalized 4-touch cold outreach sequence.
         </p>
       </div>
     );
