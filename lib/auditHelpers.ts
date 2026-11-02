@@ -122,10 +122,10 @@ export function analyzePrimaryConversionBottleneck(scores: {
   seo: number;
 }): BottleneckAnalysis {
   const categories: Array<{ cat: 'speed' | 'mobile' | 'design' | 'seo'; score: number }> = [
-    { cat: 'mobile', score: scores.mobile },
     { cat: 'speed', score: scores.speed },
-    { cat: 'design', score: scores.design },
     { cat: 'seo', score: scores.seo },
+    { cat: 'design', score: scores.design },
+    { cat: 'mobile', score: scores.mobile },
   ];
 
   // Sort lowest score first (greatest bottleneck)
@@ -133,13 +133,6 @@ export function analyzePrimaryConversionBottleneck(scores: {
   const worst = categories[0];
 
   switch (worst.cat) {
-    case 'mobile':
-      return {
-        category: 'mobile',
-        headline: 'Critical Mobile Viewport & Touch Friction',
-        impactScore: worst.score,
-        pitchHook: 'Over 68% of visitors browse on mobile devices, but tap targets and layout shifts are costing you conversions.',
-      };
     case 'speed':
       return {
         category: 'speed',
@@ -147,19 +140,27 @@ export function analyzePrimaryConversionBottleneck(scores: {
         impactScore: worst.score,
         pitchHook: 'Every 1-second delay in page load drops prospect engagement by up to 20%. Optimizing asset delivery will immediately recapture lost leads.',
       };
-    case 'design':
-      return {
-        category: 'design',
-        headline: 'Outdated Visual Hierarchy & Trust Signals',
-        impactScore: worst.score,
-        pitchHook: 'When prospects compare local providers on mobile, an outdated layout and slow image load cause over 50% to bounce before requesting an estimate.',
-      };
     case 'seo':
       return {
         category: 'seo',
         headline: 'Missing Semantic Structure & Search Meta',
         impactScore: worst.score,
-        pitchHook: 'Search engines and social previews lack key OpenGraph tags and semantic hierarchy, diminishing organic reach.',
+        pitchHook: 'Search engines and social previews lack key OpenGraph tags and semantic hierarchy, diminishing organic reach against local competitors.',
+      };
+    case 'design':
+      return {
+        category: 'design',
+        headline: 'Outdated Visual Hierarchy & Trust Signals',
+        impactScore: worst.score,
+        pitchHook: 'When prospective clients compare local providers, an outdated layout and missing above-the-fold call to action cause over 40% to bounce before requesting an estimate.',
+      };
+    case 'mobile':
+    default:
+      return {
+        category: 'mobile',
+        headline: 'Critical Mobile Viewport & Touch Friction',
+        impactScore: worst.score,
+        pitchHook: 'Over 68% of visitors browse on mobile devices, but tap targets and layout shifts are costing you conversions.',
       };
   }
 }

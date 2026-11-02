@@ -45,21 +45,66 @@ function deriveIndustryCustomerAction(industry: string = ''): string {
   return 'book appointments or request quotes';
 }
 
-function deriveSpecificIssueText(audit: AuditReport): string {
-  if (audit.scores?.mobile < 60) {
-    return `the mobile page takes over 7 seconds to load and requires zooming in on phones`;
+interface SpecificProblemDetails {
+  worstCategory: 'speed' | 'seo' | 'design' | 'mobile';
+  specificIssue: string;
+  impactExplanation: string;
+  solutionOffer: string;
+}
+
+function deriveSpecificIssueDetails(audit: AuditReport): SpecificProblemDetails {
+  const scores = audit.scores || { speed: 70, mobile: 70, design: 70, seo: 70 };
+  const categories: Array<{ cat: 'speed' | 'seo' | 'design' | 'mobile'; score: number }> = [
+    { cat: 'speed', score: scores.speed },
+    { cat: 'seo', score: scores.seo },
+    { cat: 'design', score: scores.design },
+    { cat: 'mobile', score: scores.mobile },
+  ];
+  categories.sort((a, b) => a.score - b.score);
+  const worstCat = categories[0].cat;
+
+  const loadTimeSec = ((audit.rawMetrics?.loadTimeMs || 4200) / 1000).toFixed(1);
+  const matchingIssue = (audit.issues || []).find((i) => i.category === worstCat);
+
+  switch (worstCat) {
+    case 'speed':
+      return {
+        worstCategory: 'speed',
+        specificIssue: matchingIssue?.description
+          ? matchingIssue.description.toLowerCase().replace(/\.$/, '')
+          : `the homepage takes over ${loadTimeSec} seconds to load on mobile before visitors can interact with it`,
+        impactExplanation: "That's usually where visitors give up before they ever call or book.",
+        solutionOffer: "I put together 3 quick fixes to bring that load time down under 2 seconds. Want me to send them over?",
+      };
+    case 'seo':
+      return {
+        worstCategory: 'seo',
+        specificIssue: matchingIssue?.description
+          ? matchingIssue.description.toLowerCase().replace(/\.$/, '')
+          : "the site is missing meta descriptions and structured schema markup for search engines",
+        impactExplanation: "When local clients search for your services in your area, Google prioritizes competitors who have those configured.",
+        solutionOffer: "I put together 3 quick fixes to get your pages properly indexed and ranking higher. Want me to send them over?",
+      };
+    case 'design':
+      return {
+        worstCategory: 'design',
+        specificIssue: matchingIssue?.description
+          ? matchingIssue.description.toLowerCase().replace(/\.$/, '')
+          : "the homepage lacks an immediate consultation call-to-action and social proof above the fold",
+        impactExplanation: "When prospective clients compare local providers, that's usually where they bounce to check rival firms before ever reaching out.",
+        solutionOffer: "I put together a quick wireframe walkthrough showing how modern visual hierarchy would capture more inquiries. Want me to send it over?",
+      };
+    case 'mobile':
+    default:
+      return {
+        worstCategory: 'mobile',
+        specificIssue: matchingIssue?.description
+          ? matchingIssue.description.toLowerCase().replace(/\.$/, '')
+          : "the site lacks mobile responsive scaling, forcing phone visitors into desktop zoom mode to read details",
+        impactExplanation: "Over 60% of local inquiries now come from phones, and that's usually where mobile visitors give up and bounce.",
+        solutionOffer: "I put together 3 quick fixes to make the mobile view clean and tap-friendly. Want me to send them over?",
+      };
   }
-  if (audit.scores?.speed < 65) {
-    return `the homepage takes over 8 seconds to become interactive`;
-  }
-  if (audit.scores?.seo < 60) {
-    return `the meta tags and structured headings are missing, hurting Google search ranking`;
-  }
-  const critIssue = (audit.issues || []).find((i) => i.severity === 'critical');
-  if (critIssue) {
-    return critIssue.description.toLowerCase().replace(/\.$/, '');
-  }
-  return `the primary contact button and call-to-action are pushed far below the fold on mobile`;
 }
 
 function deriveSpecificWorkText(industry: string = ''): string {
@@ -113,7 +158,8 @@ export async function POST(request: NextRequest) {
     const discoveredName = audit.prospectName || extractNameFromEmail(audit.contactEmail || '') || '';
     const prospectFirstName = discoveredName.trim() ? discoveredName.trim().split(' ')[0] : '';
     const greeting = prospectFirstName ? `Hi ${prospectFirstName},` : `Hi ${audit.companyName} team,`;
-    const specificIssue = deriveSpecificIssueText(audit);
+    const problem = deriveSpecificIssueDetails(audit);
+    const specificIssue = problem.specificIssue;
     const specificWork = deriveSpecificWorkText(audit.industry);
     const senderEmail = body.senderEmail || 'alex@apexstudio.io';
     const agencyWebsite = body.agencyWebsite || 'apexstudio.io';
@@ -276,7 +322,10 @@ CRITICAL RULES (STRICT COMPLIANCE):
 1. UNDER 100 WORDS: Every email MUST be under 100 words. Plain text only.
 2. NO CONSULTANT JARGON OR CLICHES: NEVER use "in the first 50 milliseconds", "bridge this credibility gap", "assume digital quality reflects construction quality", "lacks modern visual hierarchy", "synergy", or "first impressions are everything".
 3. ONE CLEAR QUESTION: Only one clear, frictionless question per email. Never duplicate questions.
-4. VARIATION TO GENERATE: ${activeVariation.toUpperCase()}
+4. CATEGORY FIDELITY: The primary bottleneck identified is in the ${problem.worstCategory.toUpperCase()} category (${specificIssue}).
+   - DO NOT force the pitch to be about mobile if the primary issue is Speed, SEO, or Design.
+   - Anchor the observation and quick fixes specifically on ${problem.worstCategory.toUpperCase()}.
+5. VARIATION TO GENERATE: ${activeVariation.toUpperCase()}
    - specific_problem: Mention ${specificIssue}. Explain that is usually where visitors bounce before calling/booking. Offer 3 quick fixes.
    - compliment_gap: Acknowledge their ${specificWork} is impressive, but mention ${specificIssue}. Offer a short list of improvements.
    - free_audit: Mention you run quick website audits for ${audit.industry} and found 3 things costing them leads. Offer the free audit with no obligation.

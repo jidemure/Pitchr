@@ -94,6 +94,30 @@ describe('Conversion Bottleneck Analysis', () => {
       design: 70,
       seo: 85,
     });
+
+  test('flags seo when search ranking signals are worst category', () => {
+    const analysis = analyzePrimaryConversionBottleneck({
+      mobile: 85,
+      speed: 80,
+      design: 75,
+      seo: 30,
+    });
+    assert.strictEqual(analysis.category, 'seo');
+    assert.ok(analysis.headline.toLowerCase().includes('search') || analysis.headline.toLowerCase().includes('meta'));
+    assert.strictEqual(analysis.pitchHook.includes('on mobile'), false);
+  });
+
+  test('flags design when visual hierarchy is worst category', () => {
+    const analysis = analyzePrimaryConversionBottleneck({
+      mobile: 85,
+      speed: 80,
+      design: 35,
+      seo: 70,
+    });
+    assert.strictEqual(analysis.category, 'design');
+    assert.ok(analysis.headline.toLowerCase().includes('hierarchy') || analysis.headline.toLowerCase().includes('visual'));
+    assert.strictEqual(analysis.pitchHook.includes('on mobile'), false);
+  });
     assert.strictEqual(analysis.category, 'speed');
     assert.ok(analysis.headline.toLowerCase().includes('asset') || analysis.headline.toLowerCase().includes('load'));
   });
