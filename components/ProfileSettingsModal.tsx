@@ -344,23 +344,6 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 </div>
               </div>
 
-              {/* Cold Email Signature */}
-              <div className="space-y-1">
-                <label className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block">
-                  Cold Email Signature
-                </label>
-                <textarea
-                  value={signature}
-                  onChange={(e) => setSignature(e.target.value)}
-                  rows={2}
-                  placeholder="Website Design & Redesign | Lagos, Nigeria&#10;koravale.studio@gmail.com | koravale.com"
-                  className="w-full px-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
-                />
-                <span className="text-[11px] text-slate-400">
-                  Appears below your name in cold emails and follow-ups.
-                </span>
-              </div>
-
               {/* Avatar theme color */}
               <div className="space-y-1.5 pt-1">
                 <label className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block">
@@ -690,6 +673,14 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
           {/* TAB 3: Settings */}
           {activeTab === 'settings' && (
             <div className="space-y-4">
+              <div>
+                <span className="text-xs font-semibold text-slate-900 block font-heading">
+                  Outreach & Cold Pitch Defaults
+                </span>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Configure default sender identity, lead magnets, and your single global email signature.
+                </p>
+              </div>
               <div className="space-y-1">
                 <label className="text-[11px] font-mono text-slate-500 uppercase tracking-wider block">
                   Default Cold Email Sender Name
