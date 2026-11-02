@@ -15,7 +15,9 @@ import {
   ArrowRight,
   Database,
   AlertCircle,
-  RotateCw
+  RotateCw,
+  User,
+  Edit2
 } from 'lucide-react';
 import { AuditReport, EmailSequence, Lead, EmailProvider } from '@/lib/types';
 import { formatAuditDate } from '@/lib/storage';
@@ -33,6 +35,7 @@ interface AuditModalProps {
   onSaveToCrm?: (report: AuditReport) => void;
   onNavigateToCrm?: () => void;
   onOpenTeaser?: (report: AuditReport) => void;
+  onUpdateAudit?: (updatedReport: AuditReport) => void;
 }
 
 export const AuditModal: React.FC<AuditModalProps> = ({
@@ -47,8 +50,13 @@ export const AuditModal: React.FC<AuditModalProps> = ({
   onSaveToCrm,
   onNavigateToCrm,
   onOpenTeaser,
+  onUpdateAudit,
 }) => {
   const [activeTouchIndex, setActiveTouchIndex] = useState(0);
+  const [isEditingLead, setIsEditingLead] = useState(false);
+  const [editProspectName, setEditProspectName] = useState('');
+  const [editProspectTitle, setEditProspectTitle] = useState('');
+  const [editContactEmail, setEditContactEmail] = useState('');
   const [copied, setCopied] = useState(false);
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
@@ -108,6 +116,21 @@ export const AuditModal: React.FC<AuditModalProps> = ({
   const currentTouch = sequence?.touches?.[activeTouchIndex] || sequence?.touches?.[0];
   const subjectLine = currentTouch?.subjectLines?.[0] || `${cleanDomain} needs a little polish`;
   const emailBody = currentTouch?.body || '';
+
+  const handleSaveLeadEdit = () => {
+    if (!report) return;
+    const updated: AuditReport = {
+      ...report,
+      prospectName: editProspectName.trim() || undefined,
+      prospectTitle: editProspectTitle.trim() || undefined,
+      contactEmail: editContactEmail.trim() || report.contactEmail,
+      emailSource: editContactEmail.trim() !== report.contactEmail ? 'user' : report.emailSource,
+    };
+    if (onUpdateAudit) {
+      onUpdateAudit(updated);
+    }
+    setIsEditingLead(false);
+  };
 
   const handleCopy = () => {
     const fullText = `Subject: ${subjectLine}\n\n${emailBody}`;
@@ -397,33 +420,141 @@ export const AuditModal: React.FC<AuditModalProps> = ({
               )}
             </div>
 
-            {/* Bottom Lead Info Card (Screenshot 02 & 03) */}
+            {/* Bottom Lead Info Card with Prospect-First Status & Editing */}
             <div className="pt-3 border-t border-slate-100">
-              <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-slate-400 block mb-2">
-                LEAD INFO
-              </span>
-              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-full bg-emerald-100 text-emerald-800 font-semibold flex items-center justify-center text-xs shrink-0">
-                    {(!isScanning && report?.companyName?.[0]) || cleanDomain[0]?.toUpperCase() || 'P'}
-                  </div>
-                  <span className="text-xs font-medium text-slate-800 truncate">
-                    {(!isScanning && report?.companyName) || cleanDomain}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pl-1">
-                  <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                  <span className="truncate">
-                    {(!isScanning && report?.contactEmail) || `contact@${cleanDomain}`}
-                  </span>
-                </div>
-                {!isScanning && report?.location && (
-                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pl-1">
-                    <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-                    <span className="truncate">{report.location}</span>
-                  </div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-slate-400">
+                  LEAD & DECISION MAKER
+                </span>
+                {!isScanning && report && !isEditingLead && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditProspectName(report.prospectName || '');
+                      setEditProspectTitle(report.prospectTitle || '');
+                      setEditContactEmail(report.contactEmail || '');
+                      setIsEditingLead(true);
+                    }}
+                    className="text-[11px] text-slate-400 hover:text-orange-600 transition-colors inline-flex items-center gap-1 font-medium cursor-pointer"
+                    title="Edit prospect or email"
+                  >
+                    <Edit2 className="h-3 w-3" />
+                    <span>Edit</span>
+                  </button>
                 )}
               </div>
+
+              {isEditingLead ? (
+                <div className="p-2.5 rounded-xl border border-orange-200 bg-orange-50/40 space-y-2 animate-in fade-in duration-100">
+                  <div>
+                    <label className="text-[10px] font-mono text-slate-500 uppercase block mb-0.5">Prospect Name</label>
+                    <input
+                      type="text"
+                      value={editProspectName}
+                      onChange={(e) => setEditProspectName(e.target.value)}
+                      placeholder="e.g. Dr. Sarah Jenkins"
+                      className="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-slate-500 uppercase block mb-0.5">Title / Role</label>
+                    <input
+                      type="text"
+                      value={editProspectTitle}
+                      onChange={(e) => setEditProspectTitle(e.target.value)}
+                      placeholder="e.g. Founder, CEO"
+                      className="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-mono text-slate-500 uppercase block mb-0.5">Contact Email</label>
+                    <input
+                      type="email"
+                      value={editContactEmail}
+                      onChange={(e) => setEditContactEmail(e.target.value)}
+                      placeholder="e.g. sarah@business.com"
+                      className="w-full px-2 py-1 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500"
+                    />
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingLead(false)}
+                      className="px-2 py-0.5 text-[11px] text-slate-500 hover:text-slate-700 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveLeadEdit}
+                      className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-[11px] font-medium shadow-2xs cursor-pointer"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-full bg-emerald-100 text-emerald-800 font-semibold flex items-center justify-center text-xs shrink-0">
+                      {(!isScanning && report?.companyName?.[0]) || cleanDomain[0]?.toUpperCase() || 'P'}
+                    </div>
+                    <span className="text-xs font-medium text-slate-800 truncate">
+                      {(!isScanning && report?.companyName) || cleanDomain}
+                    </span>
+                  </div>
+
+                  {/* Prospect Person */}
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-700 pl-1 border-t border-slate-100 pt-1.5">
+                    <User className="h-3.5 w-3.5 text-orange-600 shrink-0" />
+                    <span className="font-medium truncate">
+                      {report?.prospectName || 'Key Decision Maker'}
+                    </span>
+                    {report?.prospectTitle && (
+                      <span className="text-[10px] text-slate-400 truncate">({report.prospectTitle})</span>
+                    )}
+                  </div>
+
+                  {/* Email & Source Badge */}
+                  <div className="space-y-1 pl-1">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                      <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate font-mono text-[11px]">
+                        {report?.contactEmail || `contact@${cleanDomain}`}
+                      </span>
+                    </div>
+
+                    {!isScanning && (
+                      <div className="pt-0.5">
+                        {report?.emailSource === 'user' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-800 bg-orange-50 border border-orange-200/80 px-1.5 py-0.5 rounded-md">
+                            <Check className="h-2.5 w-2.5" /> Target prospect
+                          </span>
+                        ) : report?.emailSource === 'website_prospect' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded-md">
+                            <Check className="h-2.5 w-2.5" /> Verified prospect email
+                          </span>
+                        ) : report?.emailSource === 'website_general' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-blue-800 bg-blue-50 border border-blue-200/80 px-1.5 py-0.5 rounded-md">
+                            <Check className="h-2.5 w-2.5" /> Verified website contact
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-amber-800 bg-amber-50 border border-amber-200/80 px-1.5 py-0.5 rounded-md">
+                            Domain fallback
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {!isScanning && report?.location && (
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pl-1">
+                      <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{report.location}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

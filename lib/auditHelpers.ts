@@ -201,3 +201,176 @@ export function createRateLimiter(windowMs: number, maxRequests: number) {
     },
   };
 }
+
+/**
+ * Scrapes and cleans email addresses from HTML, prioritizing personal/prospect emails and domain matches.
+ */
+export function extractEmailsFromHtml(html: string, targetDomain: string): {
+  personal: string[];
+  general: string[];
+  all: string[];
+} {
+  if (!html) return { personal: [], general: [], all: [] };
+
+  const cleanTargetDomain = extractDomainName(targetDomain);
+  const found = new Set<string>();
+
+  // 1. Match mailto: links
+  const mailtoRegex = /mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi;
+  let m: RegExpExecArray | null;
+  while ((m = mailtoRegex.exec(html)) !== null) {
+    if (m[1]) found.add(m[1].toLowerCase().trim());
+  }
+
+  // 2. Match raw emails in text, JSON-LD, comments, data attributes
+  const rawEmailRegex = /\b([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})\b/gi;
+  while ((m = rawEmailRegex.exec(html)) !== null) {
+    if (m[1]) found.add(m[1].toLowerCase().trim());
+  }
+
+  // 3. Filter out asset false-positives and known bot / system traps
+  const excludedPatterns = [
+    /\.(png|jpg|jpeg|gif|svg|webp|css|js|woff|woff2|ttf|eot)$/i,
+    /example\.(com|org|net)/i,
+    /domain\.(com|org|net)/i,
+    /yourcompany/i,
+    /wixpress\.com/i,
+    /sentry\.io/i,
+    /wordpress\.(org|com)/i,
+    /w3\.org/i,
+    /schema\.org/i,
+    /cloudflare\.com/i,
+    /gravatar\.com/i,
+    /^user@/i,
+    /^test@/i,
+    /^name@/i,
+  ];
+
+  const validEmails = Array.from(found).filter((email) => {
+    return !excludedPatterns.some((pattern) => pattern.test(email));
+  });
+
+  const generalPrefixes = ['contact', 'info', 'support', 'sales', 'hello', 'office', 'admin', 'help', 'team', 'enquiries', 'inquiries', 'service'];
+
+  const personal: string[] = [];
+  const general: string[] = [];
+
+  for (const email of validEmails) {
+    const [localPart, domainPart] = email.split('@');
+    const isDomainMatch = domainPart === cleanTargetDomain || cleanTargetDomain.endsWith(domainPart || '');
+    const isGeneral = generalPrefixes.some((p) => localPart.toLowerCase().startsWith(p));
+
+    if (isGeneral) {
+      if (isDomainMatch) general.unshift(email);
+      else general.push(email);
+    } else {
+      if (isDomainMatch) personal.unshift(email);
+      else personal.push(email);
+    }
+  }
+
+  return {
+    personal,
+    general,
+    all: [...personal, ...general],
+  };
+}
+
+/**
+ * Extracts prospect/decision-maker cues from JSON-LD schema, meta authors, and team markup.
+ */
+export function extractProspectFromHtml(html: string): { name?: string; title?: string } {
+  if (!html) return {};
+
+  try {
+    // 1. Search JSON-LD schemas
+    const jsonLdRegex = /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+    let match: RegExpExecArray | null;
+    while ((match = jsonLdRegex.exec(html)) !== null) {
+      try {
+        const parsed = JSON.parse(match[1]);
+        const items = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of items) {
+          if (item['@type'] === 'Person' && item.name && typeof item.name === 'string') {
+            return {
+              name: item.name.trim(),
+              title: typeof item.jobTitle === 'string' ? item.jobTitle.trim() : 'Owner / Key Decision Maker',
+            };
+          }
+          if (item.founder) {
+            const founderName = typeof item.founder === 'string' ? item.founder : item.founder.name;
+            if (founderName) {
+              return {
+                name: founderName.trim(),
+                title: 'Founder',
+              };
+            }
+          }
+        }
+      } catch {
+        // Skip malformed individual JSON-LD blocks
+      }
+    }
+
+    // 2. Search meta author
+    const authorMatch = html.match(/<meta\b[^>]*\bname=["']author["'][^>]*\bcontent=["']([^"']+)["']/i) ||
+                        html.match(/<meta\b[^>]*\bcontent=["']([^"']+)["'][^>]*\bname=["']author["']/i);
+    if (authorMatch && authorMatch[1].trim().length > 2 && !authorMatch[1].includes('http')) {
+      const name = authorMatch[1].trim();
+      if (!name.toLowerCase().includes('wordpress') && !name.toLowerCase().includes('admin')) {
+        return { name, title: 'Author / Founder' };
+      }
+    }
+
+    // 3. Search common Founder / Owner text patterns
+    const pattern = /\b(?:founder|owner|ceo|president|managing partner|principal|dr\.)\s*[:\-–]\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})/i;
+    const textMatch = html.match(pattern);
+    if (textMatch && textMatch[1]) {
+      return {
+        name: textMatch[1].trim(),
+        title: 'Founder / Owner',
+      };
+    }
+  } catch {
+    // Graceful fallback
+  }
+
+  return {};
+}
+
+/**
+ * Discovers the best Contact or About subpage URL on the website, prioritizing direct contact pages.
+ */
+export function findContactPageUrl(html: string, baseUrl: string): string | null {
+  if (!html) return null;
+  const linkRegex = /<a\b[^>]*\bhref=["']([^"'#]+)["'][^>]*>(.*?)<\/a>/gi;
+  let match: RegExpExecArray | null;
+
+  let bestContactUrl: string | null = null;
+  let fallbackAboutUrl: string | null = null;
+
+  while ((match = linkRegex.exec(html)) !== null) {
+    const href = match[1].trim();
+    const anchorText = match[2].toLowerCase();
+    const lowerHref = href.toLowerCase();
+
+    if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('javascript:')) continue;
+
+    try {
+      const resolved = new URL(href, baseUrl);
+      const baseDomain = new URL(baseUrl).hostname.replace(/^www\./i, '');
+      if (resolved.hostname.replace(/^www\./i, '') !== baseDomain) continue;
+
+      if (lowerHref.includes('/contact') || lowerHref.includes('contact-us') || anchorText.includes('contact') || anchorText.includes('get in touch')) {
+        bestContactUrl = resolved.toString();
+        break; // Highest priority
+      } else if (lowerHref.includes('/about') || lowerHref.includes('/team') || anchorText.includes('about us') || anchorText.includes('our team')) {
+        if (!fallbackAboutUrl) fallbackAboutUrl = resolved.toString();
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return bestContactUrl || fallbackAboutUrl;
+}

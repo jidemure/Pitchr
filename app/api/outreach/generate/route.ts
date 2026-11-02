@@ -134,6 +134,10 @@ export async function POST(req: NextRequest) {
     const customerAction = deriveIndustryCustomerAction(audit.industry);
     const bottleneck = analyzePrimaryConversionBottleneck(audit);
 
+    // Derive personalized greeting for prospect if identified
+    const prospectFirstName = audit.prospectName?.trim() ? audit.prospectName.trim().split(' ')[0] : '';
+    const greeting = prospectFirstName ? `Hi ${prospectFirstName},` : `Hi ${audit.companyName} team,`;
+
     // Filter issues for highest impact
     const sortedIssues = [...(audit.issues || [])].sort((a, b) => {
       const order = { critical: 0, warning: 1, info: 2 };
@@ -156,6 +160,8 @@ Make the email copy look 100% unique, natural, and specifically hand-crafted for
 
 Prospect Analysis:
 - Business: ${audit.companyName} (${cleanDomain})
+- Recipient / Prospect: ${audit.prospectName ? `${audit.prospectName} (${audit.prospectTitle || 'Decision Maker'})` : 'Business Owner / Team'}
+- Greeting to use: ${greeting}
 - Industry: ${audit.industry}
 - Customer Inquiries Look Like: ${customerAction}
 - Discovered Primary Bottleneck: ${bottleneck.headline}
@@ -266,7 +272,7 @@ Include 2-3 short, compelling, lowercase subject lines for each touch.`;
           `${cleanDomain} missing ${customerAction}?`,
         ],
         hook: `I was reviewing ${cleanDomain} and noticed ${bottleneck.hookEvidence}.`,
-        body: `Hi,\n\nI was analyzing ${cleanDomain} earlier today and noticed a specific bottleneck that is likely costing you ${customerAction}: ${bottleneck.hookEvidence}.\n\n${bottleneck.leadLossImpact}\n\nI sketched a quick 2-minute wireframe showing how ${bottleneck.wireframeSolution} immediately recaptures these lost inquiries.`,
+        body: `${greeting}\n\nI was analyzing ${cleanDomain} earlier today and noticed a specific bottleneck that is likely costing you ${customerAction}: ${bottleneck.hookEvidence}.\n\n${bottleneck.leadLossImpact}\n\nI sketched a quick 2-minute wireframe showing how ${bottleneck.wireframeSolution} immediately recaptures these lost inquiries.`,
         cta: `Open to taking a quick look at the wireframe?`,
       },
       {
@@ -278,7 +284,7 @@ Include 2-3 short, compelling, lowercase subject lines for each touch.`;
           `wireframe walkthrough re: ${cleanDomain}`,
         ],
         hook: `Putting a visual to my earlier note regarding ${cleanDomain}.`,
-        body: `Hi,\n\nFollowing up on my note regarding ${cleanDomain}.\n\nI recorded a quick 90-second video walkthrough showing how ${bottleneck.wireframeSolution} captures prospective clients who currently bounce back to Google.\n\nWould you like me to send the video link over? No sales pitch or obligation at all.`,
+        body: `${greeting}\n\nFollowing up on my note regarding ${cleanDomain}.\n\nI recorded a quick 90-second video walkthrough showing how ${bottleneck.wireframeSolution} captures prospective clients who currently bounce back to Google.\n\nWould you like me to send the video link over? No sales pitch or obligation at all.`,
         cta: `Mind if I send the video over?`,
       },
       {
@@ -290,7 +296,7 @@ Include 2-3 short, compelling, lowercase subject lines for each touch.`;
           `${cleanDomain} vs local competitor benchmark`,
         ],
         hook: `How fixing ${bottleneck.headline.toLowerCase()} directly impacts monthly revenue.`,
-        body: `Hi,\n\nWhen we resolved this exact same bottleneck for another ${audit.industry} business last quarter, the result was ${bottleneck.caseStudyMetric} within 30 days.\n\nFor ${audit.companyName}, recovering just 1-2 additional ${customerAction} per month would more than pay for the entire redesign.\n\nI have the complete before-and-after breakdown ready if you'd like to inspect it.`,
+        body: `${greeting}\n\nWhen we resolved this exact same bottleneck for another ${audit.industry} business last quarter, the result was ${bottleneck.caseStudyMetric} within 30 days.\n\nFor ${audit.companyName}, recovering just 1-2 additional ${customerAction} per month would more than pay for the entire redesign.\n\nI have the complete before-and-after breakdown ready if you'd like to inspect it.`,
         cta: `Should I send the case study over?`,
       },
       {
@@ -302,7 +308,7 @@ Include 2-3 short, compelling, lowercase subject lines for each touch.`;
           `permission to close loop for ${audit.companyName}?`,
         ],
         hook: `Checking if improving ${cleanDomain} is on your roadmap this quarter.`,
-        body: `Hi,\n\nI haven't heard back, so I assume modernizing ${cleanDomain} isn't a priority right now—totally understand!\n\nIf anything changes down the road, feel free to reach back out anytime. Wishing ${audit.companyName} continued success.`,
+        body: `${greeting}\n\nI haven't heard back, so I assume modernizing ${cleanDomain} isn't a priority right now—totally understand!\n\nIf anything changes down the road, feel free to reach back out anytime. Wishing ${audit.companyName} continued success.`,
         cta: `Have you decided against redesigning ${cleanDomain} for now?`,
       },
     ];

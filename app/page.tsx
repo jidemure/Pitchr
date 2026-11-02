@@ -97,7 +97,12 @@ export default function HomePage() {
   };
 
   // Perform website audit via server API and immediately generate cold sequence
-  const handleStartAudit = async (targetUrl: string, targetIndustry?: string) => {
+  const handleStartAudit = async (
+    targetUrl: string,
+    targetIndustry?: string,
+    targetProspectName?: string,
+    targetProspectEmail?: string
+  ) => {
     const trimmedUrl = targetUrl.trim();
     if (!trimmedUrl) return;
 
@@ -118,7 +123,12 @@ export default function HomePage() {
       const scanPromise = fetch('/api/audit/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: trimmedUrl, industry: targetIndustry }),
+        body: JSON.stringify({
+          url: trimmedUrl,
+          industry: targetIndustry,
+          prospectName: targetProspectName,
+          prospectEmail: targetProspectEmail,
+        }),
       }).then(async (scanRes) => {
         const scanData = await scanRes.json();
         if (!scanRes.ok || !scanData.report) {
@@ -170,6 +180,9 @@ export default function HomePage() {
           overallScore: report.scores.overall,
           lastAuditedAt: report.analyzedAt,
           contactEmail: report.contactEmail || leads[existingLeadIndex].contactEmail,
+          prospectName: report.prospectName || leads[existingLeadIndex].prospectName,
+          prospectTitle: report.prospectTitle || leads[existingLeadIndex].prospectTitle,
+          emailSource: report.emailSource || leads[existingLeadIndex].emailSource,
           location: report.location || leads[existingLeadIndex].location,
           auditId: report.id,
           campaignId: generatedSeq ? generatedSeq.id : leads[existingLeadIndex].campaignId,
@@ -186,6 +199,9 @@ export default function HomePage() {
           companyName: report.companyName,
           industry: report.industry,
           contactEmail: report.contactEmail,
+          prospectName: report.prospectName,
+          prospectTitle: report.prospectTitle,
+          emailSource: report.emailSource,
           location: report.location,
           status: 'drafted',
           overallScore: report.scores.overall,
@@ -310,6 +326,31 @@ export default function HomePage() {
     setIsInWorkspace(false);
     setActiveTab('scanner');
     showToast('All local data wiped. Ready for fresh live scans.');
+  };
+
+  const handleUpdateAuditLead = (updatedReport: AuditReport) => {
+    setCurrentAudit(updatedReport);
+    const newAudits = { ...audits, [updatedReport.id]: updatedReport };
+    setAudits(newAudits);
+    saveStoredAudits(newAudits);
+
+    const existingIndex = leads.findIndex((l) => l.url.toLowerCase() === updatedReport.url.toLowerCase());
+    if (existingIndex >= 0) {
+      const updatedLead = {
+        ...leads[existingIndex],
+        companyName: updatedReport.companyName,
+        contactEmail: updatedReport.contactEmail,
+        prospectName: updatedReport.prospectName,
+        prospectTitle: updatedReport.prospectTitle,
+        emailSource: updatedReport.emailSource,
+        location: updatedReport.location,
+      };
+      const newLeads = [...leads];
+      newLeads[existingIndex] = updatedLead;
+      setLeads(newLeads);
+      saveStoredLeads(newLeads);
+    }
+    showToast('Updated lead & prospect information!');
   };
 
   return (
@@ -570,6 +611,7 @@ export default function HomePage() {
           setActiveTab('crm');
         }}
         onOpenTeaser={(rep) => setTeaserReport(rep)}
+        onUpdateAudit={handleUpdateAuditLead}
       />
 
       {/* Shareable Client Teaser Modal */}

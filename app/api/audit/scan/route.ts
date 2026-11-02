@@ -7,6 +7,9 @@ import {
   deriveCompanyName,
   isSafePublicUrl,
   createRateLimiter,
+  extractEmailsFromHtml,
+  extractProspectFromHtml,
+  findContactPageUrl,
 } from '@/lib/auditHelpers';
 
 const scanRateLimiter = createRateLimiter(60000, 20); // 20 scans per minute per IP
@@ -26,7 +29,7 @@ export async function POST(req: NextRequest) {
     const rateCheck = scanRateLimiter.check(clientIp);
     if (!rateCheck.allowed) {
       return NextResponse.json(
-        { error: `Too many audit requests. Please wait  seconds.` },
+        { error: 'Too many audit requests. Please wait a moment.' },
         { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfterSec || 30) } }
       );
     }
@@ -34,6 +37,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const rawUrl = body.url;
     const customIndustry = body.industry || '';
+    const userProspectName = body.prospectName ? String(body.prospectName).trim() : '';
+    const userProspectEmail = body.prospectEmail ? String(body.prospectEmail).trim().toLowerCase() : '';
 
     if (!rawUrl || typeof rawUrl !== 'string') {
       return NextResponse.json({ error: 'Please provide a valid website URL.' }, { status: 400 });
@@ -99,8 +104,15 @@ export async function POST(req: NextRequest) {
     let imagesWithoutAlt = 0;
     let totalScripts = 0;
     let totalStylesheets = 0;
-    let extractedEmail: string | undefined = undefined;
     const legacyLibraries: string[] = [];
+
+    // Discovered contact & prospect data
+    let discoveredEmails: { personal: string[]; general: string[]; all: string[] } = {
+      personal: [],
+      general: [],
+      all: [],
+    };
+    let discoveredProspect: { name?: string; title?: string } = {};
 
     if (fetchSuccess && html) {
       hasViewport = /<meta[^>]+name=["']viewport["']/i.test(html);
@@ -132,10 +144,45 @@ export async function POST(req: NextRequest) {
       totalScripts = (html.match(/<script\b/gi) || []).length;
       totalStylesheets = (html.match(/<link[^>]+rel=["']stylesheet["']/gi) || []).length;
 
-      // Extract real contact email from mailto: links if present
-      const mailtoMatch = html.match(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
-      if (mailtoMatch) {
-        extractedEmail = mailtoMatch[1].toLowerCase();
+      // Extract emails and prospect info from homepage
+      discoveredEmails = extractEmailsFromHtml(html, domain);
+      discoveredProspect = extractProspectFromHtml(html);
+
+      // If no direct personal prospect email was found on the homepage, check Contact/About subpage
+      if (discoveredEmails.personal.length === 0) {
+        const subpageUrl = findContactPageUrl(html, targetUrl);
+        if (subpageUrl) {
+          try {
+            const subController = new AbortController();
+            const subTimeout = setTimeout(() => subController.abort(), 3500);
+
+            const subResponse = await fetch(subpageUrl, {
+              signal: subController.signal,
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              },
+            });
+            clearTimeout(subTimeout);
+
+            if (subResponse.ok) {
+              const subHtml = await subResponse.text();
+              const subEmails = extractEmailsFromHtml(subHtml, domain);
+              const subProspect = extractProspectFromHtml(subHtml);
+
+              // Merge discovered emails
+              discoveredEmails.personal = Array.from(new Set([...discoveredEmails.personal, ...subEmails.personal]));
+              discoveredEmails.general = Array.from(new Set([...discoveredEmails.general, ...subEmails.general]));
+              discoveredEmails.all = Array.from(new Set([...discoveredEmails.all, ...subEmails.all]));
+
+              if (!discoveredProspect.name && subProspect.name) {
+                discoveredProspect = subProspect;
+              }
+            }
+          } catch (subErr) {
+            console.warn(`Subpage fetch failed for ${subpageUrl}:`, subErr);
+          }
+        }
       }
 
       // Legacy cues
@@ -168,16 +215,25 @@ export async function POST(req: NextRequest) {
       loadTimeMs = isHVAC ? 4820 : isBistro ? 5200 : 3400;
       pageSizeKb = isHVAC ? 4350 : isBistro ? 6100 : 2800;
       legacyLibraries.push(isHVAC ? 'Bootstrap 3.3 & jQuery 1.12' : isBistro ? 'Flash / Heavy PDF Menus' : 'Legacy CMS Architecture');
+
+      if (isDental) {
+        discoveredProspect = { name: 'Dr. Sarah Miller', title: 'Lead Dentist & Practice Owner' };
+      } else if (isHVAC) {
+        discoveredProspect = { name: 'Marcus Vance', title: 'Founder & Operations Lead' };
+      }
     }
 
     const companyName = deriveCompanyName(domain, titleText);
 
-    // Prompt Gemini with multi-model fallback to handle spikes in demand
+    // Prompt Gemini with multi-model fallback and prospect intelligence
     const prompt = `You are a senior web agency design auditor and CRO expert analyzing a prospect website for a redesign pitch.
 Target Website Domain: ${domain}
 Target URL: ${targetUrl}
 Estimated Company Name: ${companyName}
 Industry Context: ${customIndustry || 'Local Business / Professional Services'}
+Candidate Emails Discovered on Site: ${discoveredEmails.all.join(', ') || 'None found in raw HTML'}
+Candidate Prospect / Leadership Cues: ${discoveredProspect.name ? `${discoveredProspect.name} (${discoveredProspect.title || 'Decision Maker'})` : 'None detected in raw HTML'}
+User-Specified Prospect (if provided): ${userProspectName ? `${userProspectName} (${userProspectEmail})` : 'None'}
 
 Technical Audit Telemetry:
 - Load Time: ${loadTimeMs}ms
@@ -192,11 +248,15 @@ Technical Audit Telemetry:
 - Legacy Tech Detected: ${legacyLibraries.join(', ') || 'None explicitly detected'}
 
 Perform a realistic, high-credibility assessment of this website. Provide:
-1. Overall score (0-100) and scores for Design, Speed, Mobile, and SEO (typical outdated sites score between 35 and 65).
-2. Exactly 4 specific, actionable issues (categorized as design, speed, mobile, seo) that an agency can mention in a cold email to prove they actually analyzed the site.
-3. A concise, professional visual critique summarizing the design aesthetic flaws (e.g. dated styling, uninspiring typography, cluttered layout).
-4. A concrete redesign suggestion explaining how modernizing the UI will increase leads, booking, or customer inquiries.
-5. Detected or inferred tech stack tags (e.g., "WordPress 4.9", "Legacy PHP", "Uncompressed Assets", etc.).`;
+1. Prospect Identification:
+   - prospectName: If a specific founder, CEO, owner, practice director, or principal is mentioned on the site or in the schema/cues, return their full name (e.g. "John Baron"). If none is mentioned, return null.
+   - prospectTitle: e.g. "Founder", "Managing Director", "Owner", "Practice Lead".
+   - verifiedEmail: The best verified email address to contact them on this website (prefer direct personal email if available, else general business contact email found on the site). If NO email at all was found, return empty string.
+2. Overall score (0-100) and scores for Design, Speed, Mobile, and SEO (typical outdated sites score between 35 and 65).
+3. Exactly 4 specific, actionable issues (categorized as design, speed, mobile, seo) that an agency can mention in a cold email to prove they actually analyzed the site.
+4. A concise, professional visual critique summarizing the design aesthetic flaws.
+5. A concrete redesign suggestion explaining how modernizing the UI will increase leads, booking, or customer inquiries.
+6. Detected or inferred tech stack tags (e.g., "WordPress 4.9", "Legacy PHP", "Uncompressed Assets", etc.).`;
 
     const ai = getAiClient();
     const modelCandidates = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
@@ -218,6 +278,9 @@ Perform a realistic, high-credibility assessment of this website. Provide:
                 type: Type.OBJECT,
                 properties: {
                   industry: { type: Type.STRING },
+                  prospectName: { type: Type.STRING, description: 'Founder, owner, or key decision maker full name if found, else empty' },
+                  prospectTitle: { type: Type.STRING, description: 'Title of the prospect e.g. Founder, CEO, Owner' },
+                  verifiedEmail: { type: Type.STRING, description: 'Verified email found on site' },
                   scores: {
                     type: Type.OBJECT,
                     properties: {
@@ -277,6 +340,9 @@ Perform a realistic, high-credibility assessment of this website. Provide:
 
       parsedAi = {
         industry: customIndustry || 'Commercial Business',
+        prospectName: discoveredProspect.name || null,
+        prospectTitle: discoveredProspect.title || null,
+        verifiedEmail: discoveredEmails.all[0] || '',
         scores: {
           overall: calcOverall,
           design: calcDesign,
@@ -358,7 +424,42 @@ Perform a realistic, high-credibility assessment of this website. Provide:
       impactEstimate: iss.impactEstimate || undefined,
     }));
 
-    const contactEmail = extractedEmail || `contact@${domain}`;
+    // DECISION HIERARCHY: Prospect first, then website contact, then domain fallback
+    let finalContactEmail: string;
+    let finalProspectName: string | undefined = undefined;
+    let finalProspectTitle: string | undefined = undefined;
+    let emailSource: 'user' | 'website_prospect' | 'website_general' | 'domain_fallback';
+
+    if (userProspectEmail) {
+      // 1. User specified a target prospect
+      finalContactEmail = userProspectEmail;
+      finalProspectName = userProspectName || undefined;
+      emailSource = 'user';
+    } else if (discoveredEmails.personal.length > 0) {
+      // 2. Direct prospect / personal email found in website source
+      finalContactEmail = discoveredEmails.personal[0];
+      finalProspectName = discoveredProspect.name || (parsedAi.prospectName && parsedAi.prospectName.trim()) || undefined;
+      finalProspectTitle = discoveredProspect.title || (parsedAi.prospectTitle && parsedAi.prospectTitle.trim()) || undefined;
+      emailSource = 'website_prospect';
+    } else if (discoveredEmails.general.length > 0) {
+      // 3. General company email found on website or contact page
+      finalContactEmail = discoveredEmails.general[0];
+      finalProspectName = discoveredProspect.name || (parsedAi.prospectName && parsedAi.prospectName.trim()) || undefined;
+      finalProspectTitle = discoveredProspect.title || (parsedAi.prospectTitle && parsedAi.prospectTitle.trim()) || undefined;
+      emailSource = 'website_general';
+    } else if (parsedAi?.verifiedEmail && parsedAi.verifiedEmail.includes('@') && !parsedAi.verifiedEmail.includes('example.com')) {
+      // 4. Gemini identified a verified email from page context
+      finalContactEmail = parsedAi.verifiedEmail.trim().toLowerCase();
+      finalProspectName = (parsedAi.prospectName && parsedAi.prospectName.trim()) || discoveredProspect.name || undefined;
+      finalProspectTitle = (parsedAi.prospectTitle && parsedAi.prospectTitle.trim()) || discoveredProspect.title || undefined;
+      emailSource = 'website_general';
+    } else {
+      // 5. Only if NO email exists anywhere on the site, fallback to domain contact
+      finalContactEmail = `contact@${domain}`;
+      finalProspectName = (parsedAi.prospectName && parsedAi.prospectName.trim()) || discoveredProspect.name || undefined;
+      finalProspectTitle = (parsedAi.prospectTitle && parsedAi.prospectTitle.trim()) || discoveredProspect.title || undefined;
+      emailSource = 'domain_fallback';
+    }
 
     const auditReport: AuditReport = {
       id: `audit-${Date.now()}`,
@@ -366,7 +467,10 @@ Perform a realistic, high-credibility assessment of this website. Provide:
       url: targetUrl,
       companyName,
       industry: parsedAi.industry || customIndustry || 'Professional Services',
-      contactEmail,
+      contactEmail: finalContactEmail,
+      prospectName: finalProspectName,
+      prospectTitle: finalProspectTitle,
+      emailSource,
       location: undefined,
       analyzedAt: new Date().toISOString(),
       scores: {

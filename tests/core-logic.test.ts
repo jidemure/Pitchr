@@ -7,6 +7,9 @@ import {
   isSafePublicUrl,
   analyzePrimaryConversionBottleneck,
   createRateLimiter,
+  extractEmailsFromHtml,
+  extractProspectFromHtml,
+  findContactPageUrl,
 } from '../lib/auditHelpers.ts';
 
 describe('Audit Helpers & URL Normalization', () => {
@@ -114,5 +117,54 @@ describe('Sliding Window Rate Limiter', () => {
     assert.strictEqual(r4.allowed, false);
     assert.strictEqual(r4.remaining, 0);
     assert.ok(r4.retryAfterSec && r4.retryAfterSec >= 1);
+  });
+});
+
+describe('Website Contact & Prospect Extraction', () => {
+  test('extractEmailsFromHtml finds personal and general emails, prioritizing target domain', () => {
+    const mockHtml = `
+      <div>
+        <p>Contact us at info@baroncnr.com or reach out to john@baroncnr.com directly.</p>
+        <a href="mailto:support@baroncnr.com">Support</a>
+        <a href="mailto:external@agency.org">Partner</a>
+        <img src="asset@2x.png" />
+      </div>
+    `;
+    const res = extractEmailsFromHtml(mockHtml, 'baroncnr.com');
+    assert.ok(res.personal.includes('john@baroncnr.com'));
+    assert.ok(res.general.includes('info@baroncnr.com'));
+    assert.ok(res.general.includes('support@baroncnr.com'));
+    assert.strictEqual(res.all.includes('asset@2x.png'), false);
+  });
+
+  test('extractProspectFromHtml extracts founder from JSON-LD schema and text cues', () => {
+    const jsonLdHtml = `
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "John Baron",
+        "jobTitle": "Managing Director & Founder"
+      }
+      </script>
+    `;
+    const p1 = extractProspectFromHtml(jsonLdHtml);
+    assert.strictEqual(p1.name, 'John Baron');
+    assert.strictEqual(p1.title, 'Managing Director & Founder');
+
+    const textHtml = `<p>Founder: Sarah Miller</p>`;
+    const p2 = extractProspectFromHtml(textHtml);
+    assert.strictEqual(p2.name, 'Sarah Miller');
+  });
+
+  test('findContactPageUrl identifies contact/about subpage links', () => {
+    const html = `
+      <nav>
+        <a href="/about-us">About Us</a>
+        <a href="/contact">Get in Touch</a>
+      </nav>
+    `;
+    const url = findContactPageUrl(html, 'https://baroncnr.com');
+    assert.ok(url && url.includes('contact'));
   });
 });

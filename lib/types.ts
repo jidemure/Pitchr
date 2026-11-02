@@ -51,6 +51,9 @@ export interface AuditReport {
   industry: string;
   analyzedAt: string;
   contactEmail?: string;
+  prospectName?: string;
+  prospectTitle?: string;
+  emailSource?: 'user' | 'website_prospect' | 'website_general' | 'domain_fallback';
   location?: string;
   scores: AuditScoreBreakdown;
   issues: AuditIssue[];
@@ -132,6 +135,9 @@ export interface Lead {
   companyName: string;
   industry: string;
   contactEmail?: string;
+  prospectName?: string;
+  prospectTitle?: string;
+  emailSource?: 'user' | 'website_prospect' | 'website_general' | 'domain_fallback';
   location?: string;
   status: LeadStatus;
   overallScore: number;

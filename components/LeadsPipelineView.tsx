@@ -985,148 +985,161 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                           {formatAuditDate(lead.lastAuditedAt)}
                         </td>
 
-                        {/* Actions */}
+                        {/* Actions (Strictly Vertical ... Menu with All Dispatch & CRM Actions) */}
                         <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                          <div className="flex items-center justify-end gap-2 relative">
-                            {/* 1-Click Send Menu Button */}
-                            <div className="relative" ref={isMenuOpen ? quickSendRef : undefined}>
-                              <button
-                                type="button"
-                                onClick={() => setQuickSendLeadId(isMenuOpen ? null : lead.id)}
-                                title="1-Click Send via Gmail, Outlook, Yahoo, or Custom Mail"
-                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100/80 text-orange-900 text-xs font-medium transition-colors shadow-2xs whitespace-nowrap"
-                              >
-                                <Send className="h-3 w-3 text-orange-600" />
-                                <span className="hidden sm:inline">Pitch</span>
-                                <ChevronDown className="h-2.5 w-2.5 opacity-60" />
-                              </button>
+                          <div
+                            className="relative inline-block text-left"
+                            ref={activeActionMenuLeadId === lead.id ? actionMenuRef : undefined}
+                          >
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveActionMenuLeadId(activeActionMenuLeadId === lead.id ? null : lead.id);
+                              }}
+                              title="Actions"
+                              className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                              aria-label={`Actions for ${lead.companyName}`}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </button>
 
-                              {/* Dropdown Options for the 4 Providers */}
-                              {isMenuOpen && (
-                                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-30 text-left animate-in fade-in zoom-in-95">
-                                  <div className="px-3 py-1 border-b border-slate-100 text-[10px] font-mono uppercase text-slate-400 font-semibold">
-                                    Send {touchTitle} via:
-                                  </div>
+                            {activeActionMenuLeadId === lead.id && (
+                              <div
+                                className="absolute right-0 top-full mt-1.5 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-left animate-in fade-in zoom-in-95 duration-100 font-sans"
+                              >
+                                {/* 1-Click Send Providers */}
+                                <div className="px-3 py-1 text-[10px] font-mono uppercase text-slate-400 font-semibold tracking-wider">
+                                  Dispatch {touchTitle}
+                                </div>
+                                <div className="px-2 py-1 grid grid-cols-2 gap-1 mb-1">
                                   <button
                                     type="button"
-                                    onClick={() => handleQuickSend(lead, 'gmail')}
-                                    className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-50 text-slate-700 hover:text-red-700 transition-colors"
+                                    onClick={() => {
+                                      handleQuickSend(lead, 'gmail');
+                                      setActiveActionMenuLeadId(null);
+                                    }}
+                                    className="px-2 py-1.5 text-xs flex items-center gap-1.5 rounded-lg hover:bg-red-50 text-slate-700 hover:text-red-700 transition-colors border border-slate-100 cursor-pointer"
+                                    title="Send with Gmail"
                                   >
-                                    <svg className="h-3.5 w-3.5 fill-current text-red-600 shrink-0" viewBox="0 0 24 24">
+                                    <svg className="h-3 w-3 fill-current text-red-600 shrink-0" viewBox="0 0 24 24">
                                       <path d={EMAIL_PROVIDERS_META.gmail.iconSvg} />
                                     </svg>
-                                    <span>Gmail</span>
+                                    <span className="truncate">Gmail</span>
                                   </button>
 
                                   <button
                                     type="button"
-                                    onClick={() => handleQuickSend(lead, 'outlook')}
-                                    className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-sky-50 text-slate-700 hover:text-sky-700 transition-colors"
+                                    onClick={() => {
+                                      handleQuickSend(lead, 'outlook');
+                                      setActiveActionMenuLeadId(null);
+                                    }}
+                                    className="px-2 py-1.5 text-xs flex items-center gap-1.5 rounded-lg hover:bg-sky-50 text-slate-700 hover:text-sky-700 transition-colors border border-slate-100 cursor-pointer"
+                                    title="Send with Outlook"
                                   >
-                                    <svg className="h-3.5 w-3.5 fill-current text-sky-600 shrink-0" viewBox="0 0 24 24">
+                                    <svg className="h-3 w-3 fill-current text-sky-600 shrink-0" viewBox="0 0 24 24">
                                       <path d={EMAIL_PROVIDERS_META.outlook.iconSvg} />
                                     </svg>
-                                    <span>Outlook</span>
+                                    <span className="truncate">Outlook</span>
                                   </button>
 
                                   <button
                                     type="button"
-                                    onClick={() => handleQuickSend(lead, 'yahoo')}
-                                    className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-purple-50 text-slate-700 hover:text-purple-700 transition-colors"
+                                    onClick={() => {
+                                      handleQuickSend(lead, 'yahoo');
+                                      setActiveActionMenuLeadId(null);
+                                    }}
+                                    className="px-2 py-1.5 text-xs flex items-center gap-1.5 rounded-lg hover:bg-purple-50 text-slate-700 hover:text-purple-700 transition-colors border border-slate-100 cursor-pointer"
+                                    title="Send with Yahoo Mail"
                                   >
-                                    <svg className="h-3.5 w-3.5 fill-current text-purple-600 shrink-0" viewBox="0 0 24 24">
+                                    <svg className="h-3 w-3 fill-current text-purple-600 shrink-0" viewBox="0 0 24 24">
                                       <path d={EMAIL_PROVIDERS_META.yahoo.iconSvg} />
                                     </svg>
-                                    <span>Yahoo Mail</span>
+                                    <span className="truncate">Yahoo</span>
                                   </button>
 
                                   <button
                                     type="button"
-                                    onClick={() => handleQuickSend(lead, 'custom_smtp')}
-                                    className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-orange-50 text-slate-700 hover:text-orange-700 transition-colors border-t border-slate-100"
+                                    onClick={() => {
+                                      handleQuickSend(lead, 'custom_smtp');
+                                      setActiveActionMenuLeadId(null);
+                                    }}
+                                    className="px-2 py-1.5 text-xs flex items-center gap-1.5 rounded-lg hover:bg-orange-50 text-slate-700 hover:text-orange-700 transition-colors border border-slate-100 cursor-pointer"
+                                    title="Send with Custom Mail"
                                   >
-                                    <Mail className="h-3.5 w-3.5 text-orange-600 shrink-0" />
-                                    <span>Custom Mail</span>
+                                    <Mail className="h-3 w-3 text-orange-600 shrink-0" />
+                                    <span className="truncate">Custom</span>
                                   </button>
                                 </div>
-                              )}
-                            </div>
 
-                            {/* Vertical Ellipsis Actions Menu */}
-                            <div className="relative">
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveActionMenuLeadId(activeActionMenuLeadId === lead.id ? null : lead.id);
-                                  setQuickSendLeadId(null);
-                                }}
-                                title="Actions"
-                                className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                aria-label="Lead actions"
-                              >
-                                <MoreVertical className="h-3.5 w-3.5" />
-                              </button>
+                                <div className="my-1 border-t border-slate-100" />
 
-                              {activeActionMenuLeadId === lead.id && (
-                                <div
-                                  ref={actionMenuRef}
-                                  className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-left animate-in fade-in zoom-in-95 duration-100"
+                                {/* Standard CRM & Audit Actions */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onSelectLeadForAudit(lead);
+                                    setActiveActionMenuLeadId(null);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
                                 >
+                                  <Eye className="h-3.5 w-3.5 text-slate-400" />
+                                  <span>View Audit Scorecard</span>
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onSelectLeadForEmail(lead);
+                                    setActiveActionMenuLeadId(null);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                                >
+                                  <Mail className="h-3.5 w-3.5 text-slate-400" />
+                                  <span>Open Email Studio</span>
+                                </button>
+
+                                {onOpenTeaser && (
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      onSelectLeadForAudit(lead);
+                                      onOpenTeaser(lead);
                                       setActiveActionMenuLeadId(null);
                                     }}
-                                    className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
+                                    className="w-full px-3 py-1.5 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
                                   >
-                                    <Eye className="h-3.5 w-3.5 text-slate-400" />
-                                    <span>View Audit Scorecard</span>
+                                    <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+                                    <span>Share Public Teaser</span>
                                   </button>
+                                )}
 
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      onSelectLeadForEmail(lead);
-                                      setActiveActionMenuLeadId(null);
-                                    }}
-                                    className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                                  >
-                                    <Mail className="h-3.5 w-3.5 text-slate-400" />
-                                    <span>Open Email Studio</span>
-                                  </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveActionMenuLeadId(null);
+                                    setActiveTagPopoverLeadId(lead.id);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                                >
+                                  <Tag className="h-3.5 w-3.5 text-slate-400" />
+                                  <span>Add Tag</span>
+                                </button>
 
-                                  {onOpenTeaser && (
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        onOpenTeaser(lead);
-                                        setActiveActionMenuLeadId(null);
-                                      }}
-                                      className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors"
-                                    >
-                                      <Sparkles className="h-3.5 w-3.5 text-orange-500" />
-                                      <span>Share Public Teaser</span>
-                                    </button>
-                                  )}
+                                <div className="my-1 border-t border-slate-100" />
 
-                                  <div className="my-1 border-t border-slate-100" />
-
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      onDeleteLead(lead.id);
-                                      setActiveActionMenuLeadId(null);
-                                    }}
-                                    className="w-full px-3 py-1.5 text-xs flex items-center gap-2 text-rose-600 hover:bg-rose-50 transition-colors"
-                                  >
-                                    <Trash2 className="h-3.5 w-3.5 shrink-0" />
-                                    <span>Delete Lead</span>
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onDeleteLead(lead.id);
+                                    setActiveActionMenuLeadId(null);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs flex items-center gap-2 text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 shrink-0" />
+                                  <span>Delete Lead</span>
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
