@@ -1,0 +1,6 @@
+{
+  "name": "Swokei - AI Website Audit & Cold Outreach Engine",
+  "description": "Automate website audits for design, speed, mobile, and SEO flaws, turning diagnostic findings into high-converting cold email sequences at scale.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,538 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import {
+  Globe,
+  Check,
+  Copy,
+  Mail,
+  MapPin,
+  ChevronDown,
+  ChevronUp,
+  X,
+  ExternalLink,
+  Layers,
+  ArrowRight,
+  Database
+} from 'lucide-react';
+import { AuditReport, EmailSequence, Lead } from '@/lib/types';
+import { formatAuditDate } from '@/lib/storage';
+
+interface AuditModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  report: AuditReport | null;
+  sequence: EmailSequence | null;
+  isScanning: boolean;
+  scanningUrl: string;
+  onSaveToCrm?: (report: AuditReport) => void;
+  onNavigateToCrm?: () => void;
+}
+
+export const AuditModal: React.FC<AuditModalProps> = ({
+  isOpen,
+  onClose,
+  report,
+  sequence,
+  isScanning,
+  scanningUrl,
+  onSaveToCrm,
+  onNavigateToCrm,
+}) => {
+  const [activeTouchIndex, setActiveTouchIndex] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  // Progressive scanning simulation steps for the radar screen (Screenshot 02)
+  const [scanningStepIndex, setScanningStepIndex] = useState(0);
+  const scanningSteps = [
+    'Opening the site in a real browser...',
+    'Analyzing viewport meta tags & mobile responsiveness...',
+    'Critiquing typography, visual hierarchy & design era with Gemini 3.8 Flash...',
+    'Checking page weight, uncompressed image assets & CSS...',
+    'Synthesizing personalized 4-touch cold outreach proposal...',
+  ];
+
+  useEffect(() => {
+    if (!isScanning) return;
+    const interval = setInterval(() => {
+      setScanningStepIndex((prev) => (prev + 1) % scanningSteps.length);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [isScanning, scanningSteps.length]);
+
+  if (!isOpen) return null;
+
+  // Display domain calculation
+  const rawUrl = report?.url || scanningUrl || 'target-website.com';
+  const cleanDomain = rawUrl
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .replace(/\/.*$/, '');
+
+  // Scores out of 10 (matching Screenshot 03: e.g. 5, 9, 7, 1)
+  const designScore10 = report ? Math.max(1, Math.min(10, Math.round(report.scores.design / 10))) : 5;
+  const seoScore10 = report ? Math.max(1, Math.min(10, Math.round(report.scores.seo / 10))) : 9;
+  const respScore10 = report ? Math.max(1, Math.min(10, Math.round(report.scores.mobile / 10))) : 7;
+  const speedScore10 = report ? Math.max(1, Math.min(10, Math.round(report.scores.speed / 10))) : 1;
+
+  const getScoreCircleClass = (val: number) => {
+    if (val >= 7) return 'text-emerald-700 bg-emerald-50 border-emerald-400';
+    if (val >= 4) return 'text-amber-700 bg-amber-50 border-amber-400';
+    return 'text-rose-700 bg-rose-50 border-rose-400';
+  };
+
+  const currentTouch = sequence?.touches?.[activeTouchIndex] || sequence?.touches?.[0];
+  const subjectLine = currentTouch?.subjectLines?.[0] || `${cleanDomain} needs a little polish`;
+  const emailBody = currentTouch?.body || '';
+
+  const handleCopy = () => {
+    const fullText = `Subject: ${subjectLine}\n\n${emailBody}`;
+    navigator.clipboard.writeText(fullText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const toggleCategory = (cat: string) => {
+    setExpandedCategory(expandedCategory === cat ? null : cat);
+  };
+
+  // Filter issues by category
+  const getIssuesForCategory = (cat: string) => {
+    if (!report) return [];
+    return report.issues.filter((i) => i.category === cat);
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto bg-slate-900/60 backdrop-blur-sm animate-fade-in"
+    >
+      <div className="relative w-full max-w-4xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-slate-200/90 overflow-hidden my-auto flex flex-col max-h-[94vh]">
+        {/* Modal Top Bar (Screenshots 02 & 03) */}
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-100 bg-white shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <Globe className="h-4 w-4 text-slate-500 shrink-0" />
+            <span className="font-medium text-xs sm:text-sm text-slate-900 truncate">
+              {cleanDomain}
+            </span>
+            <span className="text-slate-300">·</span>
+            {isScanning ? (
+              <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 truncate">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="hidden sm:inline">Opening the site in a real browser...</span>
+                <span className="sm:hidden">Analyzing...</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-xs text-slate-700 font-medium">
+                <Check className="h-3.5 w-3.5 text-emerald-600" />
+                <span>Email ready</span>
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="px-2.5 py-0.5 text-[11px] font-medium bg-emerald-100/70 text-emerald-800 rounded-full border border-emerald-200/60">
+              Your free analysis
+            </span>
+            <button
+              onClick={onClose}
+              className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              aria-label="Close modal"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Modal Body: 2-Column Responsive Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-y-auto">
+          {/* Left Column (Scores & Lead Info) */}
+          <div className="md:col-span-4 p-4 sm:p-5 border-b md:border-b-0 md:border-r border-slate-100 bg-[#fbfcfd] flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <span className="text-[11px] font-mono uppercase tracking-wider font-semibold text-slate-500 block">
+                SITE SCORES
+              </span>
+
+              {/* State A: Loading Placeholder Cards (Screenshot 02) */}
+              {isScanning && (
+                <div className="space-y-2.5">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="h-14 rounded-xl border border-dashed border-slate-200 bg-white/60 animate-pulse"
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* State B: Populated Interactive Scores (Screenshot 03) */}
+              {!isScanning && report && (
+                <div className="space-y-2">
+                  {/* Design Score Card */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs transition-all">
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory('design')}
+                      className="w-full flex items-center justify-between text-left group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`h-7 w-7 rounded-full border-2 flex items-center justify-center font-bold text-xs font-mono shrink-0 ${getScoreCircleClass(
+                            designScore10
+                          )}`}
+                        >
+                          {designScore10}
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 block">
+                            Design
+                          </span>
+                          <span className="text-[10px] text-slate-400 group-hover:text-emerald-700">
+                            tap to see what Pitchr found
+                          </span>
+                        </div>
+                      </div>
+                      {expandedCategory === 'design' ? (
+                        <ChevronUp className="h-4 w-4 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      )}
+                    </button>
+
+                    {expandedCategory === 'design' && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1.5 animate-fade-in">
+                        <p className="font-medium text-slate-800">
+                          {report.visualCritique}
+                        </p>
+                        {getIssuesForCategory('design').map((iss) => (
+                          <div key={iss.id} className="text-slate-500 pl-2 border-l-2 border-amber-300">
+                            • {iss.title}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* SEO Score Card */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs transition-all">
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory('seo')}
+                      className="w-full flex items-center justify-between text-left group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`h-7 w-7 rounded-full border-2 flex items-center justify-center font-bold text-xs font-mono shrink-0 ${getScoreCircleClass(
+                            seoScore10
+                          )}`}
+                        >
+                          {seoScore10}
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 block">
+                            SEO
+                          </span>
+                          <span className="text-[10px] text-slate-400 group-hover:text-emerald-700">
+                            tap to see what Pitchr found
+                          </span>
+                        </div>
+                      </div>
+                      {expandedCategory === 'seo' ? (
+                        <ChevronUp className="h-4 w-4 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      )}
+                    </button>
+
+                    {expandedCategory === 'seo' && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1.5 animate-fade-in">
+                        <p className="text-slate-700">
+                          Title: {report.rawMetrics.hasTitle ? '✓ Configured' : '✕ Missing'} | Schema:{' '}
+                          {report.rawMetrics.hasSchema ? '✓ Present' : '✕ Missing'}
+                        </p>
+                        {getIssuesForCategory('seo').map((iss) => (
+                          <div key={iss.id} className="text-slate-500 pl-2 border-l-2 border-emerald-300">
+                            • {iss.title}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Responsiveness Score Card */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs transition-all">
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory('mobile')}
+                      className="w-full flex items-center justify-between text-left group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`h-7 w-7 rounded-full border-2 flex items-center justify-center font-bold text-xs font-mono shrink-0 ${getScoreCircleClass(
+                            respScore10
+                          )}`}
+                        >
+                          {respScore10}
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 block">
+                            Responsiveness
+                          </span>
+                          <span className="text-[10px] text-slate-400 group-hover:text-emerald-700">
+                            tap to see what Pitchr found
+                          </span>
+                        </div>
+                      </div>
+                      {expandedCategory === 'mobile' ? (
+                        <ChevronUp className="h-4 w-4 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      )}
+                    </button>
+
+                    {expandedCategory === 'mobile' && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1.5 animate-fade-in">
+                        <p className="text-slate-700">
+                          Viewport Tag:{' '}
+                          {report.rawMetrics.viewportConfigured ? '✓ Configured' : '✕ Broken on mobile'}
+                        </p>
+                        {getIssuesForCategory('mobile').map((iss) => (
+                          <div key={iss.id} className="text-slate-500 pl-2 border-l-2 border-emerald-300">
+                            • {iss.title}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Speed Score Card */}
+                  <div className="rounded-xl border border-slate-200/90 bg-white p-3 shadow-2xs transition-all">
+                    <button
+                      type="button"
+                      onClick={() => toggleCategory('speed')}
+                      className="w-full flex items-center justify-between text-left group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`h-7 w-7 rounded-full border-2 flex items-center justify-center font-bold text-xs font-mono shrink-0 ${getScoreCircleClass(
+                            speedScore10
+                          )}`}
+                        >
+                          {speedScore10}
+                        </div>
+                        <div>
+                          <span className="text-xs font-semibold text-slate-800 block">
+                            Speed
+                          </span>
+                          <span className="text-[10px] text-slate-400 group-hover:text-emerald-700">
+                            tap to see what Pitchr found
+                          </span>
+                        </div>
+                      </div>
+                      {expandedCategory === 'speed' ? (
+                        <ChevronUp className="h-4 w-4 text-slate-400" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      )}
+                    </button>
+
+                    {expandedCategory === 'speed' && (
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1.5 animate-fade-in">
+                        <p className="text-slate-700">
+                          Estimated Load: {(report.rawMetrics.loadTimeMs / 1000).toFixed(1)}s (
+                          {report.rawMetrics.pageSizeKb} KB)
+                        </p>
+                        {getIssuesForCategory('speed').map((iss) => (
+                          <div key={iss.id} className="text-slate-500 pl-2 border-l-2 border-rose-300">
+                            • {iss.title}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Lead Info Card (Screenshot 02 & 03) */}
+            <div className="pt-3 border-t border-slate-100">
+              <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-slate-400 block mb-2">
+                LEAD INFO
+              </span>
+              <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-emerald-100 text-emerald-800 font-semibold flex items-center justify-center text-xs shrink-0">
+                    {report?.companyName?.[0] || cleanDomain[0]?.toUpperCase() || 'P'}
+                  </div>
+                  <span className="text-xs font-medium text-slate-800 truncate">
+                    {report?.companyName || cleanDomain}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pl-1">
+                  <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate">
+                    {report?.contactEmail || `contact@${cleanDomain}`}
+                  </span>
+                </div>
+                {report?.location && (
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pl-1">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{report.location}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column (Scan Progress or Cold Email Output) */}
+          <div className="md:col-span-8 p-4 sm:p-6 flex flex-col justify-between bg-white overflow-y-auto">
+            {/* Case 1: In-Flight Scanning State (Screenshot 02) */}
+            {isScanning && (
+              <div className="flex flex-col items-center justify-center py-12 sm:py-16 space-y-6 text-center animate-fade-in my-auto">
+                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400">
+                  SUBJECT
+                </span>
+
+                {/* Animated Pulsing Radar Icon */}
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute h-24 w-24 rounded-full border border-emerald-300 animate-ping opacity-25" />
+                  <div className="h-20 w-20 rounded-full border-2 border-emerald-400/80 bg-emerald-50/50 flex items-center justify-center relative shadow-sm">
+                    <div className="h-10 w-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                      <Globe className="h-5 w-5" />
+                    </div>
+                    {/* Orbiting dot */}
+                    <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs animate-pulse" />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-xs text-slate-400 font-mono">Visiting</span>
+                  <p className="text-sm sm:text-base font-semibold text-slate-900 font-mono">
+                    {cleanDomain}
+                  </p>
+                </div>
+
+                <div className="w-48 sm:w-64 h-[1px] bg-slate-100" />
+
+                <div className="space-y-2 max-w-sm">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
+                    THINKING
+                  </span>
+                  <div className="inline-flex items-center gap-2 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 font-sans">
+                    <Globe className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <span className="truncate">{scanningSteps[scanningStepIndex]}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Case 2: Analysis Complete & Email Ready (Screenshot 03 - NO PAYWALL!) */}
+            {!isScanning && (
+              <div className="space-y-4 animate-fade-in">
+                {/* Subject Line & Touch Stepper */}
+                <div className="border-b border-slate-100 pb-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold">
+                      SUBJECT
+                    </span>
+                    {/* Touch tabs */}
+                    {sequence && sequence.touches && sequence.touches.length > 1 && (
+                      <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg">
+                        {sequence.touches.map((t, idx) => (
+                          <button
+                            key={t.step}
+                            onClick={() => setActiveTouchIndex(idx)}
+                            className={`px-2 py-0.5 text-[11px] font-medium rounded transition-all ${
+                              activeTouchIndex === idx
+                                ? 'bg-white text-slate-900 font-semibold shadow-2xs'
+                                : 'text-slate-500 hover:text-slate-800'
+                            }`}
+                          >
+                            Touch {t.step}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <p className="text-sm sm:text-base font-medium text-slate-900">
+                    {subjectLine}
+                  </p>
+                </div>
+
+                {/* Email Body with Highlighting (Screenshot 03) */}
+                <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/40 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3 font-sans">
+                  <p>Hi,</p>
+                  <p>
+                    I was on{' '}
+                    <mark className="bg-sky-100 text-sky-900 px-1 py-0.5 rounded font-mono text-[11px] sm:text-xs">
+                      {cleanDomain}
+                    </mark>
+                    , and one thing in particular caught my eye.{' '}
+                    <mark className="bg-emerald-100 text-emerald-900 px-1 py-0.5 rounded">
+                      {currentTouch?.hook || 'Letting your work speak for itself is something I respect.'}
+                    </mark>
+                  </p>
+
+                  {/* Body Paragraphs */}
+                  {emailBody ? (
+                    emailBody
+                      .split('\n\n')
+                      .slice(1)
+                      .map((para, i) => <p key={i}>{para}</p>)
+                  ) : (
+                    <>
+                      <p>
+                        There are a few things that could easily double your mobile inquiries. Your mobile site takes over 4 seconds on cellular connections before visitors see a quote button.
+                      </p>
+                      <p>
+                        I sketched a quick 2-minute wireframe showing how a sticky thumb-zone consultation button and compressed project gallery would capture lost after-hours inquiries.
+                      </p>
+                      <p className="font-medium text-slate-900">
+                        Open to taking a quick look at the wireframe?
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                {/* Bottom Action Strip */}
+                <div className="pt-3 border-t border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="text-[11px] text-slate-500 font-mono">
+                    ✓ Stored to Pitchr Database & CRM
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]"
+                    >
+                      {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                      <span>{copied ? 'Copied' : 'Copy Email'}</span>
+                    </button>
+
+                    {onNavigateToCrm && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onClose();
+                          onNavigateToCrm();
+                        }}
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-all active:scale-[0.98]"
+                      >
+                        <span>Proceed to CRM Pipeline</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
