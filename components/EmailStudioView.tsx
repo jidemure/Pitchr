@@ -128,12 +128,18 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
 
   const getFullBodyText = () => {
     if (!currentTouch) return '';
-    const bodyText = currentTouch.body.trim();
+    let bodyText = currentTouch.body.trim();
     const ctaText = currentTouch.cta?.trim() || '';
     const endsWithQuestion = bodyText.endsWith('?');
     const hasCta = (ctaText && bodyText.includes(ctaText)) || endsWithQuestion;
-    const bodyWithCta = hasCta ? bodyText : `${bodyText}\n\n${ctaText}`;
-    return `${bodyWithCta}\n\nBest,\n${senderName}\n${agencyName}`;
+    if (!hasCta && ctaText) {
+      bodyText = `${bodyText}\n\n${ctaText}`;
+    }
+    // Avoid double signatures or double unsubscribe lines
+    if (bodyText.includes('Not interested?') || bodyText.includes(senderName)) {
+      return bodyText;
+    }
+    return `${bodyText}\n\n${senderName}\n${agencyName}\n\nNot interested? Reply "no thanks" and I won't email again.`;
   };
 
   // Dispatch email through selected or explicit provider
@@ -302,6 +308,11 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                   onChange={(e) => setActiveTone(e.target.value as OutreachTone)}
                   className="w-full text-xs p-2.5 rounded-xl bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
                 >
+                  <option value="specific_problem">1. The Specific Problem (Under 100 words)</option>
+                  <option value="compliment_gap">2. Compliment + Gap</option>
+                  <option value="free_audit">3. Free 3-Point Audit Offer</option>
+                  <option value="competitor_angle">4. The Competitor Angle</option>
+                  <option value="question_opener">5. The Question Opener</option>
                   <option value="boutique_agency">Boutique Agency (High Craft)</option>
                   <option value="freelancer">Freelance Developer (Peer-to-Peer)</option>
                   <option value="performance_roi">Performance / CRO Focused</option>
@@ -710,12 +721,18 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                   </div>
                 )}
 
-                {/* Signature */}
-                <div className="pt-3 border-t border-slate-100 text-xs text-slate-500 font-sans space-y-0.5">
-                  <span className="block font-medium text-slate-700">Best regards,</span>
-                  <span className="block text-slate-800 font-semibold">{senderName}</span>
-                  <span className="block text-slate-500">{agencyName}</span>
-                </div>
+                {/* Signature & Compliance Footer */}
+                {!currentTouch.body.includes('Not interested?') && !currentTouch.body.includes(senderName) && (
+                  <div className="pt-3 border-t border-slate-100 text-xs text-slate-500 font-sans space-y-1.5">
+                    <div>
+                      <span className="block text-slate-800 font-semibold">{senderName}</span>
+                      <span className="block text-slate-500">Website Design & Redesign | {agencyName}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 italic pt-1 border-t border-slate-100/60">
+                      Not interested? Reply "no thanks" and I won't email again.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Step Navigation Footer */}

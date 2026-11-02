@@ -10,6 +10,7 @@ import {
   extractEmailsFromHtml,
   extractProspectFromHtml,
   findContactPageUrl,
+  extractNameFromEmail,
 } from '../lib/auditHelpers.ts';
 
 describe('Audit Helpers & URL Normalization', () => {
@@ -155,6 +156,15 @@ describe('Website Contact & Prospect Extraction', () => {
     const textHtml = `<p>Founder: Sarah Miller</p>`;
     const p2 = extractProspectFromHtml(textHtml);
     assert.strictEqual(p2.name, 'Sarah Miller');
+  });
+
+  test('extractNameFromEmail extracts human first/last name and ignores role emails', () => {
+    assert.strictEqual(extractNameFromEmail('dennis@mollabuilders.com'), 'Dennis');
+    assert.strictEqual(extractNameFromEmail('john.smith@acme.org'), 'John Smith');
+    assert.strictEqual(extractNameFromEmail('sarah_connor@sky.net'), 'Sarah Connor');
+    assert.strictEqual(extractNameFromEmail('contact@mollabuilders.com'), undefined);
+    assert.strictEqual(extractNameFromEmail('info@company.com'), undefined);
+    assert.strictEqual(extractNameFromEmail('admin@site.io'), undefined);
   });
 
   test('findContactPageUrl identifies contact/about subpage links', () => {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createRateLimiter } from '@/lib/auditHelpers';
+import { createRateLimiter, extractNameFromEmail } from '@/lib/auditHelpers';
 const outreachLimiter = createRateLimiter(60000, 25);
 
 import { GoogleGenAI, Type } from '@google/genai';
@@ -107,6 +107,41 @@ function analyzePrimaryConversionBottleneck(audit: AuditReport): ConversionBottl
   };
 }
 
+
+function deriveSpecificIssueText(audit: AuditReport): string {
+  const raw = audit.rawMetrics;
+  const issues = audit.issues || [];
+  
+  if (!raw.viewportConfigured || audit.scores.mobile < 45) {
+    return 'the page does not scale for mobile screens, requiring visitors to pinch and zoom';
+  }
+  if (raw.loadTimeMs > 2500 || audit.scores.speed < 50) {
+    const secs = (raw.loadTimeMs / 1000).toFixed(1);
+    return `the page takes ${secs} seconds to load on mobile`;
+  }
+  const speedIssue = issues.find(i => i.category === 'speed');
+  if (speedIssue) return speedIssue.description.toLowerCase();
+
+  const mobileIssue = issues.find(i => i.category === 'mobile');
+  if (mobileIssue) return mobileIssue.description.toLowerCase();
+
+  return 'the mobile gallery is slow to load and lacks a clear call-to-action above the fold';
+}
+
+function deriveSpecificWorkText(industry: string = ''): string {
+  const ind = industry.toLowerCase();
+  if (ind.includes('kitchen') || ind.includes('bath') || ind.includes('remodel') || ind.includes('build')) {
+    return 'custom project portfolio';
+  }
+  if (ind.includes('dent') || ind.includes('health') || ind.includes('clinic')) {
+    return 'patient care services';
+  }
+  if (ind.includes('law') || ind.includes('legal')) {
+    return 'client case results';
+  }
+  return 'recent client work';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -133,9 +168,29 @@ export async function POST(req: NextRequest) {
     const customerAction = deriveIndustryCustomerAction(audit.industry);
     const bottleneck = analyzePrimaryConversionBottleneck(audit);
 
-    // Derive personalized greeting for prospect if identified
-    const prospectFirstName = audit.prospectName?.trim() ? audit.prospectName.trim().split(' ')[0] : '';
+    // Derive personalized prospect first name (prospectName -> email name extraction -> fallback)
+    const discoveredName = audit.prospectName || extractNameFromEmail(audit.contactEmail || '') || '';
+    const prospectFirstName = discoveredName.trim() ? discoveredName.trim().split(' ')[0] : '';
     const greeting = prospectFirstName ? `Hi ${prospectFirstName},` : `Hi ${audit.companyName} team,`;
+    const specificIssue = deriveSpecificIssueText(audit);
+    const specificWork = deriveSpecificWorkText(audit.industry);
+    const senderEmail = body.senderEmail || 'alex@apexstudio.io';
+    const agencyLocation = body.agencyLocation || 'Lagos, Nigeria';
+    const agencyWebsite = body.agencyWebsite || 'apexstudio.io';
+
+    // Map tone to one of the 5 variations
+    let activeVariation: 'specific_problem' | 'compliment_gap' | 'free_audit' | 'competitor_angle' | 'question_opener' = 'specific_problem';
+    if (tone === 'compliment_gap' || tone === 'boutique_agency') {
+      activeVariation = 'compliment_gap';
+    } else if (tone === 'free_audit') {
+      activeVariation = 'free_audit';
+    } else if (tone === 'competitor_angle' || tone === 'performance_roi') {
+      activeVariation = 'competitor_angle';
+    } else if (tone === 'question_opener') {
+      activeVariation = 'question_opener';
+    } else {
+      activeVariation = 'specific_problem';
+    }
 
     // Filter issues for highest impact
     const sortedIssues = [...(audit.issues || [])].sort((a, b) => {
@@ -151,61 +206,35 @@ export async function POST(req: NextRequest) {
       )
       .join('\n');
 
-    const prompt = `You are an elite B2B cold outreach copywriter who writes warm, authentic, bespoke redesign proposals that sound 100% human and convert at 35%+.
+    const signatureBlock = `${senderName}
+Website Design & Redesign | ${agencyName}
+${senderEmail} | ${agencyWebsite}
 
-CRITICAL VOICE & ANTI-SLOP RULES (STRICT ENFORCEMENT):
-1. RESPECT THE CRAFT: Always acknowledge their actual quality, services, or craftsmanship respectfully in the opening. NEVER insult their business, NEVER say their work looks low quality, and NEVER say they have a "credibility gap".
-2. ZERO ACADEMIC CLICHES & JARGON:
-   - FORBIDDEN PHRASES: "in the first 50 milliseconds", "bridge this credibility gap", "assume digital quality reflects construction quality", "lacks a modern visual hierarchy", "synergy", "first impressions are everything".
-   - Speak like an articulate, thoughtful design director or developer writing a quick peer-to-peer note.
-3. SINGLE CTA RULE (NO DOUBLE QUESTIONS):
-   - In "body": Provide the greeting, a warm genuine observation of their work, the specific mobile friction observation, and the lead-up to the wireframe preview. DO NOT put the closing question inside "body".
-   - In "cta": Provide the single, friendly, low-pressure question (e.g. "Open to taking a quick 2-minute look at the wireframe? (No sales pitch either way).").
-   - NEVER create stacked questions like "Would you be open to X? Worth a look?". The body and cta MUST join seamlessly into ONE natural sentence.
-4. CONCISE LENGTH:
-   - Touch 1: 65-85 words total.
-   - Touch 2: 50-70 words.
-   - Touch 3: 55-75 words.
-   - Touch 4: 35-50 words.
+Not interested? Reply "no thanks" and I won't email again.`;
 
-Prospect Analysis:
+    const prompt = `You are an elite B2B cold outreach copywriter who writes concise, authentic, high-converting cold email sequences.
+
+CRITICAL RULES (STRICT COMPLIANCE):
+1. UNDER 100 WORDS: Every email MUST be under 100 words. Plain text only.
+2. NO CONSULTANT JARGON OR CLICHES: NEVER use "in the first 50 milliseconds", "bridge this credibility gap", "assume digital quality reflects construction quality", "lacks modern visual hierarchy", "synergy", or "first impressions are everything".
+3. ONE CLEAR QUESTION: Only one clear, frictionless question per email. Never duplicate questions.
+4. VARIATION TO GENERATE: ${activeVariation.toUpperCase()}
+   - specific_problem: Mention ${specificIssue}. Explain that is usually where visitors bounce before calling/booking. Offer 3 quick fixes.
+   - compliment_gap: Acknowledge their ${specificWork} is impressive, but mention ${specificIssue}. Offer a short list of improvements.
+   - free_audit: Mention you run quick website audits for ${audit.industry} and found 3 things costing them leads. Offer the free audit with no obligation.
+   - competitor_angle: Compare ${cleanDomain} with local competitors on mobile speed and ease of ${customerAction}. Offer to share the comparison.
+   - question_opener: Ask if the site brings in as many customers as they'd like, point out ${specificIssue}, and offer a short 2-minute video.
+5. GREETING: Address directly as "${greeting}".
+6. FOOTER: End each email body with the clean signature and unsubscribe line:
+${signatureBlock}
+
+Prospect Details:
 - Business: ${audit.companyName} (${cleanDomain})
-- Recipient / Prospect: ${audit.prospectName ? `${audit.prospectName} (${audit.prospectTitle || 'Decision Maker'})` : 'Business Owner / Team'}
-- Greeting to use: ${greeting}
+- Recipient: ${prospectFirstName ? prospectFirstName : 'Business Owner'}
+- Specific Finding: ${specificIssue}
 - Industry: ${audit.industry}
-- Customer Inquiries Look Like: ${customerAction}
-- Discovered Primary Opportunity: ${bottleneck.headline}
-- Specific Technical Friction: ${bottleneck.hookEvidence}
-- Real Commercial Value: ${bottleneck.leadLossImpact}
-- Proposed Redesign Concept: ${bottleneck.wireframeSolution}
-- Industry Metric: ${bottleneck.caseStudyMetric}
-- Secondary Issues:
-${issuesSummary}
-
-Outreach Angle (${tone}):
-${tone === 'boutique_agency' ? '- Focus on premium brand positioning, elevating project showcases, and capturing high-intent quote inquiries.' : ''}
-${tone === 'freelancer' ? '- Authentic, humble designer/engineer speaking peer-to-peer with zero agency fluff.' : ''}
-${tone === 'performance_roi' ? '- Direct, numbers-focused walkthrough of mobile bounce rates, image load times, and recaptured revenue.' : ''}
-
-Sender: ${senderName} from ${agencyName}
-Offer: ${customOffer}
-
-Generate a progressive 4-touch cold sequence:
-1. Touch 1 (The Diagnostic Hook): 65-85 words.
-   - Start with ${greeting} and a warm compliment about ${audit.companyName}'s work on ${cleanDomain}.
-   - Mention the specific mobile friction point (${bottleneck.hookEvidence}).
-   - Mention that you sketched a quick 2-minute wireframe showing how ${bottleneck.wireframeSolution} captures more ${customerAction}.
-   - Place the single frictionless question in the "cta" field.
-2. Touch 2 (The 2-Minute Solution): 50-70 words (3 days later).
-   - Describe what the wireframe shows (e.g. ${bottleneck.wireframeSolution}).
-   - Ask permission in "cta" to drop the quick 90-second video walkthrough.
-3. Touch 3 (The Commercial Case Study): 55-75 words (7 days later).
-   - Share the tangible result from another ${audit.industry} project (${bottleneck.caseStudyMetric}).
-   - Explain how recovering 1-2 lost ${customerAction} per month pays for the entire redesign.
-4. Touch 4 (The Polite Closure): 35-50 words (12 days later).
-   - Clean, graceful departure with zero guilt. Leaves an open door for the future.
-
-Include 2-3 short, compelling, lowercase subject lines for each touch.`;
+- Customer Inquiries: ${customerAction}
+`;
 
     const ai = getAiClient();
     const modelCandidates = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
@@ -228,11 +257,11 @@ Include 2-3 short, compelling, lowercase subject lines for each touch.`;
                 properties: {
                   personalizationSummary: {
                     type: Type.STRING,
-                    description: '1-2 sentences explaining why this specific email angle will hook this client.',
+                    description: '1 sentence explaining the core hook.',
                   },
                   customRedesignPitch: {
                     type: Type.STRING,
-                    description: 'The core redesign value proposition formulated for this client.',
+                    description: 'The core value proposition.',
                   },
                   touches: {
                     type: Type.ARRAY,
@@ -270,56 +299,81 @@ Include 2-3 short, compelling, lowercase subject lines for each touch.`;
       }
     }
 
-    // Dynamic, flaw-specific fallback sequence: 100% tailored to the actual discovered audit flaw
+    // Hand-crafted fallback sequences matching the 5 playbook variations with 100% precision
+    let touch1Subject = `Quick note about ${audit.companyName}'s website`;
+    let touch1Body = `${greeting}\n\nI was looking at ${cleanDomain} and noticed ${specificIssue}.\n\nThat's usually where visitors give up before they ever call or book.\n\nI put together 3 quick fixes for it. Want me to send them over?\n\n${signatureBlock}`;
+    let touch1Cta = `Want me to send them over?`;
+
+    let touch2Subject = `Re: Quick note about ${audit.companyName}'s website`;
+    let touch2Body = `${greeting}\n\nFollowing up on the ${specificIssue} I mentioned. It's a quick fix and I can walk you through it. Should I send the details?\n\n${senderName}\n${agencyName}\n\nNot interested? Reply "no thanks" and I won't email again.`;
+    let touch2Cta = `Should I send the details?`;
+
+    if (activeVariation === 'compliment_gap') {
+      touch1Subject = `Loved your ${specificWork}`;
+      touch1Body = `${greeting}\n\nYour ${specificWork} is impressive, but your website doesn't show it off as well as it could (${specificIssue}).\n\nI help ${audit.industry} businesses turn their sites into something that brings in enquiries. I can send a short list of improvements if you're open to it.\n\n${signatureBlock}`;
+      touch1Cta = `Want the list of improvements?`;
+      touch2Subject = `Re: Loved your ${specificWork}`;
+      touch2Body = `${greeting}\n\nJust bumping this in case it got buried. I'd love to show you how your best work could be presented better online. Want the list?\n\n${senderName}\n${agencyName}\n\nNot interested? Reply "no thanks" and I won't email again.`;
+      touch2Cta = `Want the list?`;
+    } else if (activeVariation === 'free_audit') {
+      touch1Subject = `Free 3-point audit for ${audit.companyName}`;
+      touch1Body = `${greeting}\n\nI run quick website audits for ${audit.industry} businesses. I've already looked at yours and found 3 things that could be costing you leads (${specificIssue}).\n\nI'll send the audit for free, with no obligation. Want it?\n\n${signatureBlock}`;
+      touch1Cta = `Want the free audit?`;
+      touch2Subject = `Re: Free 3-point audit for ${audit.companyName}`;
+      touch2Body = `${greeting}\n\nThe audit is ready whenever you are. Reply "yes" and I'll send it right over, no strings attached.\n\n${senderName}\n${agencyName}\n\nNot interested? Reply "no thanks" and I won't email again.`;
+      touch2Cta = `Reply "yes" and I'll send it over.`;
+    } else if (activeVariation === 'competitor_angle') {
+      touch1Subject = `${audit.companyName} vs. local competitors online`;
+      touch1Body = `${greeting}\n\nI compared ${cleanDomain} with top local competitors in your area. Theirs loads faster and makes it easier to ${customerAction}.\n\nA few small changes could close that gap. Happy to share what I'd change if useful.\n\n${signatureBlock}`;
+      touch1Cta = `Happy to share what I'd change if useful.`;
+      touch2Subject = `Re: ${audit.companyName} vs. local competitors online`;
+      touch2Body = `${greeting}\n\nI can send the side-by-side comparison if you'd like to see where you're ahead and where you could improve. Interested?\n\n${senderName}\n${agencyName}\n\nNot interested? Reply "no thanks" and I won't email again.`;
+      touch2Cta = `Interested in the side-by-side comparison?`;
+    } else if (activeVariation === 'question_opener') {
+      touch1Subject = `Question about your website`;
+      touch1Body = `${greeting}\n\nQuick question: is your website bringing in as many customers as you'd like?\n\nI looked at ${cleanDomain} and spotted that ${specificIssue}. I made a short 2-minute video showing it, and I can send the link if you want to see it.\n\n${signatureBlock}`;
+      touch1Cta = `Can I send the video link over?`;
+      touch2Subject = `Re: Question about your website`;
+      touch2Body = `${greeting}\n\nHere's the short video walkthrough I mentioned regarding ${cleanDomain}. It's under 2 minutes. Let me know what you think.\n\n${senderName}\n${agencyName}\n\nNot interested? Reply "no thanks" and I won't email again.`;
+      touch2Cta = `Let me know what you think.`;
+    }
+
     const bespokeTouches = [
       {
         step: 1,
-        title: 'Initial Diagnostic Hook',
+        title: 'Initial Outreach',
         timing: 'Day 1 (Immediate)',
-        subjectLines: [
-          `quick note about ${cleanDomain}`,
-          `mobile inquiry idea for ${cleanDomain}`,
-          `${cleanDomain} mobile layout idea`,
-        ],
-        hook: `I was reviewing ${cleanDomain} and noticed ${bottleneck.hookEvidence}.`,
-        body: `${greeting}\n\nI was checking out ${cleanDomain} earlier today—really impressive portfolio of work.\n\nOne small detail caught my eye on mobile: ${bottleneck.hookEvidence}. ${bottleneck.leadLossImpact}\n\nI put together a quick 2-minute visual wireframe showing how ${bottleneck.wireframeSolution} helps capture more of those inquiries.`,
-        cta: `Open to seeing a quick 2-minute mobile walkthrough? (No sales pitch either way).`,
+        subjectLines: [touch1Subject],
+        hook: `Noticed ${specificIssue} on ${cleanDomain}.`,
+        body: touch1Body,
+        cta: touch1Cta,
       },
       {
         step: 2,
-        title: 'Wireframe Walkthrough & Visual Concept',
-        timing: 'Day 3 (Follow-up)',
-        subjectLines: [
-          `2-min wireframe preview for ${cleanDomain}`,
-          `quick walkthrough re: ${cleanDomain}`,
-        ],
-        hook: `Putting a visual to my earlier note regarding ${cleanDomain}.`,
-        body: `${greeting}\n\nFollowing up on my quick note regarding ${cleanDomain}.\n\nI recorded a 90-second video walkthrough showing how ${bottleneck.wireframeSolution} captures prospective clients who currently bounce on smartphones.`,
-        cta: `Mind if I send the video preview link over?`,
+        title: 'Follow-up #1',
+        timing: 'Day 3-4',
+        subjectLines: [touch2Subject],
+        hook: `Following up on the quick fix for ${cleanDomain}.`,
+        body: touch2Body,
+        cta: touch2Cta,
       },
       {
         step: 3,
-        title: 'Industry Case Study & Revenue ROI',
-        timing: 'Day 7 (Technical Proof)',
-        subjectLines: [
-          `case study: ${bottleneck.caseStudyMetric} for ${audit.industry}`,
-          `${cleanDomain} mobile inquiry benchmark`,
-        ],
-        hook: `How fixing ${bottleneck.headline.toLowerCase()} directly impacts monthly revenue.`,
-        body: `${greeting}\n\nWhen we resolved this exact same mobile friction for another ${audit.industry} business, the result was ${bottleneck.caseStudyMetric}.\n\nFor ${audit.companyName}, recovering just 1-2 additional ${customerAction} per month easily pays for the modern mobile flow.\n\nI have the complete before-and-after breakdown ready if you'd like to inspect it.`,
-        cta: `Should I email the case study breakdown over?`,
+        title: 'Follow-up #2',
+        timing: 'Day 7',
+        subjectLines: [`Re: ${touch1Subject}`],
+        hook: `One last observation for ${cleanDomain}.`,
+        body: `${greeting}\n\nOne last useful thing: ${audit.companyName}'s site doesn't have a clear consultation call-to-action above the fold on mobile. Small change, big difference in enquiries.\n\nIf you'd like to talk it through, here's a free 15-minute slot: https://calendly.com/${senderName.toLowerCase().replace(/\s+/g, '')}\n\n${signatureBlock}`,
+        cta: `Open to a quick 15-minute slot?`,
       },
       {
         step: 4,
-        title: 'Polite Closure',
-        timing: 'Day 12 (Closure)',
-        subjectLines: [
-          `closing file on ${cleanDomain}`,
-          `permission to close loop for ${audit.companyName}?`,
-        ],
-        hook: `Checking if improving ${cleanDomain} is on your roadmap this quarter.`,
-        body: `${greeting}\n\nI haven't heard back, so I assume modernizing ${cleanDomain} isn't a priority right now—completely understand!\n\nIf anything changes down the road, feel free to reach back out anytime. Wishing ${audit.companyName} continued success.`,
-        cta: `Have you decided against redesigning ${cleanDomain} for now?`,
+        title: 'Break-up Email',
+        timing: 'Day 12',
+        subjectLines: ['Should I close your file?'],
+        hook: `Permission to close your file re: ${cleanDomain}.`,
+        body: `${greeting}\n\nI haven't heard back, so I'll assume the timing isn't right and won't follow up again.\n\nIf your website becomes a priority later, my details are below and you're welcome to reach out anytime.\n\nWishing ${audit.companyName} all the best.\n\n${signatureBlock}`,
+        cta: `Have you decided against modernizing ${cleanDomain} for now?`,
       },
     ];
 

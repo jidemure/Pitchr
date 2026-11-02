@@ -1,7 +1,15 @@
 export type IssueSeverity = 'critical' | 'warning' | 'info';
 export type IssueCategory = 'design' | 'speed' | 'mobile' | 'seo';
 export type LeadStatus = 'audited' | 'drafted' | 'contacted' | 'replied' | 'converted';
-export type OutreachTone = 'freelancer' | 'boutique_agency' | 'performance_roi';
+export type OutreachTone =
+  | 'specific_problem'
+  | 'compliment_gap'
+  | 'free_audit'
+  | 'competitor_angle'
+  | 'question_opener'
+  | 'freelancer'
+  | 'boutique_agency'
+  | 'performance_roi';
 
 export interface AuditIssue {
   id: string;

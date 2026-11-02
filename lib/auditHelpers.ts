@@ -152,7 +152,7 @@ export function analyzePrimaryConversionBottleneck(scores: {
         category: 'design',
         headline: 'Outdated Visual Hierarchy & Trust Signals',
         impactScore: worst.score,
-        pitchHook: 'First impressions form in under 50ms. A clean modern aesthetic elevates authority and justifies premium pricing.',
+        pitchHook: 'When prospects compare local providers on mobile, an outdated layout and slow image load cause over 50% to bounce before requesting an estimate.',
       };
     case 'seo':
       return {
@@ -373,4 +373,30 @@ export function findContactPageUrl(html: string, baseUrl: string): string | null
   }
 
   return bestContactUrl || fallbackAboutUrl;
+}
+
+/**
+ * Derives a human first name and optional last name from an email address prefix (e.g. dennis@... -> "Dennis", john.smith@... -> "John Smith").
+ * Filters out role-based prefixes like contact, info, sales, admin, etc.
+ */
+export function extractNameFromEmail(email: string): string | undefined {
+  if (!email || !email.includes('@')) return undefined;
+  const localPart = email.split('@')[0].trim().toLowerCase();
+  const genericRoles = [
+    'contact', 'info', 'support', 'hello', 'sales', 'admin', 'office', 'team',
+    'help', 'mail', 'billing', 'press', 'inquiry', 'inquiries', 'feedback', 'service',
+    'services', 'jobs', 'careers', 'general', 'reception', 'desk'
+  ];
+  if (genericRoles.includes(localPart)) return undefined;
+
+  // Split on dots, underscores, dashes
+  const parts = localPart.split(/[._-]/).filter((p) => p.length > 1 && !/\d/.test(p));
+  if (parts.length === 0) return undefined;
+
+  const capitalized = parts
+    .slice(0, 2)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ');
+
+  return capitalized || undefined;
 }

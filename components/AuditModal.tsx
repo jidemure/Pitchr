@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { AuditReport, EmailSequence, Lead, EmailProvider } from '@/lib/types';
 import { formatAuditDate } from '@/lib/storage';
+import { extractNameFromEmail } from '@/lib/auditHelpers';
 import { triggerDirectProviderLaunch, EMAIL_PROVIDERS_META } from '@/lib/emailDispatcher';
 
 interface AuditModalProps {
@@ -96,6 +97,8 @@ export const AuditModal: React.FC<AuditModalProps> = ({
 
   // Display domain calculation
   const rawUrl = isScanning ? (scanningUrl || 'target-website.com') : (report?.url || scanningUrl || 'target-website.com');
+  const derivedProspectName = report?.prospectName || extractNameFromEmail(report?.contactEmail || '') || '';
+  const derivedProspectTitle = report?.prospectTitle || (derivedProspectName ? 'Owner / Decision Maker' : 'Team / Decision Maker');
   const cleanDomain = rawUrl
     .replace(/^https?:\/\//, '')
     .replace(/^www\./, '')
@@ -430,8 +433,8 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setEditProspectName(report.prospectName || '');
-                      setEditProspectTitle(report.prospectTitle || '');
+                      setEditProspectName(report.prospectName || extractNameFromEmail(report.contactEmail || '') || '');
+                      setEditProspectTitle(report.prospectTitle || (derivedProspectName ? 'Decision Maker' : ''));
                       setEditContactEmail(report.contactEmail || '');
                       setIsEditingLead(true);
                     }}
@@ -507,12 +510,12 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                   {/* Prospect Person */}
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-700 pl-1 border-t border-slate-100 pt-1.5">
                     <User className="h-3.5 w-3.5 text-orange-600 shrink-0" />
-                    <span className="font-medium truncate">
-                      {report?.prospectName || 'Key Decision Maker'}
+                    <span className="font-semibold text-slate-900 truncate">
+                      {derivedProspectName || 'Key Decision Maker'}
                     </span>
-                    {report?.prospectTitle && (
-                      <span className="text-[10px] text-slate-400 truncate">({report.prospectTitle})</span>
-                    )}
+                    <span className="text-[10px] text-slate-400 truncate">
+                      ({derivedProspectTitle})
+                    </span>
                   </div>
 
                   {/* Email & Source Badge */}

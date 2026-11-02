@@ -10,6 +10,7 @@ import {
   extractEmailsFromHtml,
   extractProspectFromHtml,
   findContactPageUrl,
+  extractNameFromEmail,
 } from '@/lib/auditHelpers';
 
 const scanRateLimiter = createRateLimiter(60000, 20); // 20 scans per minute per IP
@@ -459,6 +460,18 @@ Perform a realistic, high-credibility assessment of this website. Provide:
       finalProspectName = (parsedAi.prospectName && parsedAi.prospectName.trim()) || discoveredProspect.name || undefined;
       finalProspectTitle = (parsedAi.prospectTitle && parsedAi.prospectTitle.trim()) || discoveredProspect.title || undefined;
       emailSource = 'domain_fallback';
+    }
+
+    // If prospect name wasn't found in text/schema, derive from personal email (e.g. dennis@mollabuilders.com -> "Dennis")
+    if (!finalProspectName && finalContactEmail) {
+      const nameFromEmail = extractNameFromEmail(finalContactEmail);
+      if (nameFromEmail) {
+        finalProspectName = nameFromEmail;
+        if (!finalProspectTitle) finalProspectTitle = 'Decision Maker';
+        if (emailSource === 'website_general' || emailSource === 'domain_fallback') {
+          emailSource = 'website_prospect';
+        }
+      }
     }
 
     const auditReport: AuditReport = {
