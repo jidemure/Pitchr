@@ -13,7 +13,9 @@ import {
   ExternalLink,
   Layers,
   ArrowRight,
-  Database
+  Database,
+  AlertCircle,
+  RotateCw
 } from 'lucide-react';
 import { AuditReport, EmailSequence, Lead, EmailProvider } from '@/lib/types';
 import { formatAuditDate } from '@/lib/storage';
@@ -26,6 +28,8 @@ interface AuditModalProps {
   sequence: EmailSequence | null;
   isScanning: boolean;
   scanningUrl: string;
+  error?: string | null;
+  onRetry?: (url: string) => void;
   onSaveToCrm?: (report: AuditReport) => void;
   onNavigateToCrm?: () => void;
 }
@@ -37,6 +41,8 @@ export const AuditModal: React.FC<AuditModalProps> = ({
   sequence,
   isScanning,
   scanningUrl,
+  error,
+  onRetry,
   onSaveToCrm,
   onNavigateToCrm,
 }) => {
@@ -57,15 +63,18 @@ export const AuditModal: React.FC<AuditModalProps> = ({
   useEffect(() => {
     if (!isScanning) return;
     const interval = setInterval(() => {
-      setScanningStepIndex((prev) => (prev + 1) % scanningSteps.length);
-    }, 1800);
-    return () => clearInterval(interval);
+      setScanningStepIndex((prev) => (prev < scanningSteps.length - 1 ? prev + 1 : prev));
+    }, 750);
+    return () => {
+      clearInterval(interval);
+      setScanningStepIndex(0);
+    };
   }, [isScanning, scanningSteps.length]);
 
   if (!isOpen) return null;
 
   // Display domain calculation
-  const rawUrl = report?.url || scanningUrl || 'target-website.com';
+  const rawUrl = isScanning ? (scanningUrl || 'target-website.com') : (report?.url || scanningUrl || 'target-website.com');
   const cleanDomain = rawUrl
     .replace(/^https?:\/\//, '')
     .replace(/^www\./, '')
@@ -123,7 +132,12 @@ export const AuditModal: React.FC<AuditModalProps> = ({
               <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 truncate">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="hidden sm:inline">Opening the site in a real browser...</span>
-                <span className="sm:hidden">Analyzing...</span>
+                <span className="sm:hidden">Scanning...</span>
+              </span>
+            ) : error && !report ? (
+              <span className="inline-flex items-center gap-1.5 text-xs text-rose-600 font-medium truncate">
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                <span>Scan halted</span>
               </span>
             ) : (
               <span className="inline-flex items-center gap-1 text-xs text-slate-700 font-medium">
@@ -165,6 +179,19 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                       className="h-14 rounded-xl border border-dashed border-slate-200 bg-white/60 animate-pulse"
                     />
                   ))}
+                </div>
+              )}
+
+              {/* State A2: Scan Error on Left Column */}
+              {!isScanning && error && !report && (
+                <div className="p-3.5 rounded-xl border border-rose-200/80 bg-rose-50/50 text-xs text-rose-700 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-semibold text-rose-800">
+                    <AlertCircle className="h-3.5 w-3.5 text-rose-600 shrink-0" />
+                    <span>Diagnostics Halted</span>
+                  </div>
+                  <p className="text-[11px] text-rose-600/90 leading-relaxed">
+                    Live metrics could not be gathered for this URL.
+                  </p>
                 </div>
               )}
 
@@ -365,19 +392,19 @@ export const AuditModal: React.FC<AuditModalProps> = ({
               <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-1.5">
                 <div className="flex items-center gap-2">
                   <div className="h-6 w-6 rounded-full bg-emerald-100 text-emerald-800 font-semibold flex items-center justify-center text-xs shrink-0">
-                    {report?.companyName?.[0] || cleanDomain[0]?.toUpperCase() || 'P'}
+                    {(!isScanning && report?.companyName?.[0]) || cleanDomain[0]?.toUpperCase() || 'P'}
                   </div>
                   <span className="text-xs font-medium text-slate-800 truncate">
-                    {report?.companyName || cleanDomain}
+                    {(!isScanning && report?.companyName) || cleanDomain}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pl-1">
                   <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                   <span className="truncate">
-                    {report?.contactEmail || `contact@${cleanDomain}`}
+                    {(!isScanning && report?.contactEmail) || `contact@${cleanDomain}`}
                   </span>
                 </div>
-                {report?.location && (
+                {!isScanning && report?.location && (
                   <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pl-1">
                     <MapPin className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                     <span className="truncate">{report.location}</span>
@@ -417,7 +444,7 @@ export const AuditModal: React.FC<AuditModalProps> = ({
 
                 <div className="w-48 sm:w-64 h-[1px] bg-slate-100" />
 
-                <div className="space-y-2 max-w-sm">
+                <div className="space-y-2.5 max-w-sm">
                   <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-semibold block">
                     THINKING
                   </span>
@@ -425,12 +452,64 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <Globe className="h-3.5 w-3.5 text-slate-400 shrink-0" />
                     <span className="truncate">{scanningSteps[scanningStepIndex]}</span>
                   </div>
+
+                  {/* Visual Step Progress Dots */}
+                  <div className="flex items-center justify-center gap-1.5 pt-1">
+                    {scanningSteps.map((_, idx) => (
+                      <div
+                        key={idx}
+                        className={`h-1.5 rounded-full transition-all duration-300 ${
+                          idx === scanningStepIndex
+                            ? 'w-6 bg-emerald-600'
+                            : idx < scanningStepIndex
+                            ? 'w-1.5 bg-emerald-400'
+                            : 'w-1.5 bg-slate-200'
+                        }`}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
 
-            {/* Case 2: Analysis Complete & Email Ready (Screenshot 03 - NO PAYWALL!) */}
-            {!isScanning && (
+            {/* Case 2: Scan Error State */}
+            {!isScanning && error && !report && (
+              <div className="flex flex-col items-center justify-center py-12 sm:py-16 space-y-5 text-center animate-fade-in my-auto max-w-sm mx-auto">
+                <div className="h-14 w-14 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-xs">
+                  <AlertCircle className="h-7 w-7" />
+                </div>
+                <div className="space-y-1.5">
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Audit could not complete
+                  </h3>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    {error || 'Unable to scan this website. Please check the URL and try again.'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 pt-2">
+                  {onRetry && (
+                    <button
+                      type="button"
+                      onClick={() => onRetry(scanningUrl)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-xl shadow-xs transition-all active:scale-[0.98]"
+                    >
+                      <RotateCw className="h-3.5 w-3.5" />
+                      <span>Retry Scan</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 text-xs font-medium rounded-xl transition-all"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Case 3: Analysis Complete & Email Ready (Screenshot 03 - NO PAYWALL!) */}
+            {!isScanning && report && (
               <div className="space-y-4 animate-fade-in">
                 {/* Subject Line & Touch Stepper */}
                 <div className="border-b border-slate-100 pb-3 space-y-2">

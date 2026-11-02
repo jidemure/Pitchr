@@ -61,6 +61,7 @@ export default function HomePage() {
   const [teaserReport, setTeaserReport] = useState<AuditReport | null>(null);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
 
   // Rehydrate custom saved state from localStorage after initial render
   useEffect(() => {
@@ -95,27 +96,39 @@ export default function HomePage() {
 
   // Perform website audit via server API and immediately generate cold sequence
   const handleStartAudit = async (targetUrl: string, targetIndustry?: string) => {
+    const trimmedUrl = targetUrl.trim();
+    if (!trimmedUrl) return;
+
+    // Reset previous audit and sequence immediately so stale data is never shown
+    setAuditError(null);
+    setCurrentAudit(null);
+    setCurrentSequence(null);
     setIsAuditing(true);
-    setAuditingUrl(targetUrl);
+    setAuditingUrl(trimmedUrl);
     setIsAuditModalOpen(true);
 
     try {
-      // Step 1: Scan Website
-      const scanRes = await fetch('/api/audit/scan', {
+      // 1. Establish an intentional visual scan pacing timer (~3.6 seconds)
+      // so the user actually sees the radar screen animate across the 5 diagnostic stages
+      const minScanTimer = new Promise((resolve) => setTimeout(resolve, 3600));
+
+      // 2. Trigger server scan
+      const scanPromise = fetch('/api/audit/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: targetUrl, industry: targetIndustry }),
+        body: JSON.stringify({ url: trimmedUrl, industry: targetIndustry }),
+      }).then(async (scanRes) => {
+        const scanData = await scanRes.json();
+        if (!scanRes.ok || !scanData.report) {
+          throw new Error(scanData.error || 'Failed to scan website.');
+        }
+        return scanData.report as AuditReport;
       });
 
-      const scanData = await scanRes.json();
-      if (!scanRes.ok || !scanData.report) {
-        throw new Error(scanData.error || 'Failed to scan website.');
-      }
+      // Await both technical scan and visual scan animation
+      const [report] = await Promise.all([scanPromise, minScanTimer]);
 
-      const report: AuditReport = scanData.report;
-      setCurrentAudit(report);
-
-      // Step 2: Automatically generate 4-touch cold outreach sequence for this audit
+      // 3. Automatically generate 4-touch cold outreach sequence for this audit
       let generatedSeq: EmailSequence | null = null;
       try {
         const emailRes = await fetch('/api/outreach/generate', {
@@ -143,7 +156,7 @@ export default function HomePage() {
         console.warn('Auto-generation of cold email failed:', emailErr);
       }
 
-      // Step 3: Record into CRM Leads database with exact date
+      // 4. Record into CRM Leads database with exact date
       const existingLeadIndex = leads.findIndex((l) => l.url.toLowerCase() === report.url.toLowerCase());
       let updatedLead: Lead;
 
@@ -189,6 +202,9 @@ export default function HomePage() {
       setAudits(newAudits);
       saveStoredAudits(newAudits);
 
+      // Now set current audit to trigger the reveal of the scorecard
+      setCurrentAudit(report);
+
       // Auto sync to Supabase if enabled
       if (supabaseConfig.syncEnabled) {
         syncLeadToSupabase(updatedLead, report, generatedSeq || undefined);
@@ -197,6 +213,7 @@ export default function HomePage() {
       showToast(`Audit & sequence ready for ${report.companyName}!`);
     } catch (err: any) {
       console.error('Audit error:', err);
+      setAuditError(err.message || 'An error occurred during scanning');
       showToast(err.message || 'An error occurred during scanning', 'error');
     } finally {
       setIsAuditing(false);
@@ -473,6 +490,7 @@ export default function HomePage() {
         isOpen={isAuditModalOpen}
         onClose={() => {
           setIsAuditModalOpen(false);
+          setAuditError(null);
           // If audit completed, automatically transition to workspace CRM
           if (currentAudit && !isAuditing) {
             setIsInWorkspace(true);
@@ -483,6 +501,10 @@ export default function HomePage() {
         sequence={currentSequence}
         isScanning={isAuditing}
         scanningUrl={auditingUrl}
+        error={auditError}
+        onRetry={(url) => {
+          handleStartAudit(url);
+        }}
         onNavigateToCrm={() => {
           setIsInWorkspace(true);
           setActiveTab('crm');

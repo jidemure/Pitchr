@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     let fetchSuccess = false;
 
     // Check if target is a sample mock domain or real URL
-    const isSampleDomain = domain.endsWith('.sample') || domain.includes('example.com') || domain.includes('localhost');
+    const isSampleDomain = domain.endsWith('.sample') || domain.endsWith('.test') || domain.endsWith('.local') || domain === 'localhost';
 
     if (!isSampleDomain) {
       const startTime = Date.now();
@@ -169,7 +169,7 @@ export async function POST(req: NextRequest) {
 
     const companyName = deriveCompanyName(domain, titleText);
 
-    // Prompt Gemini 3.8 Flash to perform expert agency critique & score synthesis
+    // Prompt Gemini with multi-model fallback to handle spikes in demand
     const prompt = `You are a senior web agency design auditor and CRO expert analyzing a prospect website for a redesign pitch.
 Target Website Domain: ${domain}
 Target URL: ${targetUrl}
@@ -195,54 +195,128 @@ Perform a realistic, high-credibility assessment of this website. Provide:
 4. A concrete redesign suggestion explaining how modernizing the UI will increase leads, booking, or customer inquiries.
 5. Detected or inferred tech stack tags (e.g., "WordPress 4.9", "Legacy PHP", "Uncompressed Assets", etc.).`;
 
-    const aiResponse = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            industry: { type: Type.STRING },
-            scores: {
+    const modelCandidates = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    let parsedAi: any = null;
+
+    for (const modelName of modelCandidates) {
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('AI model timeout')), 4000)
+        );
+
+        const aiPromise = ai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
               type: Type.OBJECT,
               properties: {
-                overall: { type: Type.INTEGER },
-                design: { type: Type.INTEGER },
-                speed: { type: Type.INTEGER },
-                mobile: { type: Type.INTEGER },
-                seo: { type: Type.INTEGER },
-              },
-              required: ['overall', 'design', 'speed', 'mobile', 'seo'],
-            },
-            issues: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  category: { type: Type.STRING, description: 'Must be one of: design, speed, mobile, seo' },
-                  severity: { type: Type.STRING, description: 'critical, warning, or info' },
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  recommendation: { type: Type.STRING },
-                  impactEstimate: { type: Type.STRING },
+                industry: { type: Type.STRING },
+                scores: {
+                  type: Type.OBJECT,
+                  properties: {
+                    overall: { type: Type.INTEGER },
+                    design: { type: Type.INTEGER },
+                    speed: { type: Type.INTEGER },
+                    mobile: { type: Type.INTEGER },
+                    seo: { type: Type.INTEGER },
+                  },
+                  required: ['overall', 'design', 'speed', 'mobile', 'seo'],
                 },
-                required: ['category', 'severity', 'title', 'description', 'recommendation'],
+                issues: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      category: { type: Type.STRING, description: 'Must be one of: design, speed, mobile, seo' },
+                      severity: { type: Type.STRING, description: 'critical, warning, or info' },
+                      title: { type: Type.STRING },
+                      description: { type: Type.STRING },
+                      recommendation: { type: Type.STRING },
+                      impactEstimate: { type: Type.STRING },
+                    },
+                    required: ['category', 'severity', 'title', 'description', 'recommendation'],
+                  },
+                },
+                techStack: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                },
+                visualCritique: { type: Type.STRING },
+                redesignSuggestion: { type: Type.STRING },
               },
+              required: ['scores', 'issues', 'techStack', 'visualCritique', 'redesignSuggestion'],
             },
-            techStack: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            visualCritique: { type: Type.STRING },
-            redesignSuggestion: { type: Type.STRING },
           },
-          required: ['scores', 'issues', 'techStack', 'visualCritique', 'redesignSuggestion'],
-        },
-      },
-    });
+        });
 
-    const parsedAi = JSON.parse(aiResponse.text || '{}');
+        const aiResponse = await Promise.race([aiPromise, timeoutPromise]);
+        if (aiResponse && aiResponse.text) {
+          parsedAi = JSON.parse(aiResponse.text);
+          break;
+        }
+      } catch (modelErr) {
+        console.warn(`Model ${modelName} encountered error:`, modelErr);
+      }
+    }
+
+    // Telemetry-derived fallback if all AI models are temporarily under high demand
+    if (!parsedAi || !parsedAi.scores) {
+      const calcSpeed = Math.max(15, Math.min(85, Math.round(100 - (loadTimeMs / 100))));
+      const calcMobile = hasViewport ? 72 : 28;
+      const calcSeo = Math.max(25, Math.min(90, (hasTitle ? 25 : 0) + (hasMetaDesc ? 25 : 0) + (hasOpenGraph ? 20 : 0) + (imagesWithoutAlt === 0 ? 20 : 5)));
+      const calcDesign = legacyLibraries.length > 0 ? 46 : 64;
+      const calcOverall = Math.round((calcSpeed + calcMobile + calcSeo + calcDesign) / 4);
+
+      parsedAi = {
+        industry: customIndustry || 'Commercial Business',
+        scores: {
+          overall: calcOverall,
+          design: calcDesign,
+          speed: calcSpeed,
+          mobile: calcMobile,
+          seo: calcSeo,
+        },
+        issues: [
+          {
+            category: 'mobile',
+            severity: hasViewport ? 'warning' : 'critical',
+            title: hasViewport ? 'Mobile Viewport Thumb-Zone Optimization' : 'Missing Mobile Viewport Meta Tag',
+            description: hasViewport ? 'Primary call to action buttons sit outside comfortable reach on mobile phones.' : 'Site does not declare mobile viewport scaling, forcing smartphones into desktop zoom.',
+            recommendation: 'Implement responsive flex layout with sticky mobile action buttons.',
+            impactEstimate: 'Double mobile conversion rates',
+          },
+          {
+            category: 'speed',
+            severity: loadTimeMs > 2500 ? 'critical' : 'warning',
+            title: `Cellular Load Delay (${(loadTimeMs / 1000).toFixed(1)}s)`,
+            description: `Page weight (${pageSizeKb}KB) causes noticeable lag on 4G connections before hero elements render.`,
+            recommendation: 'Compress image assets and defer non-critical JavaScript scripts.',
+            impactEstimate: 'Reduce bounce rate by 28%',
+          },
+          {
+            category: 'design',
+            severity: 'warning',
+            title: 'Visual Hierarchy & Credibility Polish',
+            description: 'Typography scale and padding don\'t clearly guide prospects toward high-intent contact forms.',
+            recommendation: 'Modernize card containers, modern typography hierarchy, and social proof trust badges.',
+            impactEstimate: 'Increase quotation requests',
+          },
+          {
+            category: 'seo',
+            severity: !hasOpenGraph ? 'warning' : 'info',
+            title: !hasOpenGraph ? 'Missing Social OpenGraph Tags' : 'Incomplete Semantic Schema',
+            description: !hasOpenGraph ? 'Links shared via text message or social media render without preview images.' : 'Google search results miss rich snippet ratings and business metadata.',
+            recommendation: 'Inject OpenGraph card tags and Schema.org structured data.',
+            impactEstimate: 'Improve search click-through rate',
+          },
+        ],
+        techStack: legacyLibraries.length > 0 ? legacyLibraries : ['Standard HTML5', 'Custom CSS', 'Modern Script Bundler'],
+        visualCritique: 'The current layout has dated typography hierarchy and lacks modern conversion triggers for after-hours visitors.',
+        redesignSuggestion: 'Redesign with a high-contrast hero section, prominent click-to-call / quote button, and responsive mobile card gallery.',
+      };
+    }
 
     // Assemble unified raw metrics
     const rawMetrics: RawMetrics = {

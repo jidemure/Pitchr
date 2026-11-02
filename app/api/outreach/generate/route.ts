@@ -69,48 +69,118 @@ Generate a comprehensive 4-stage cold email sequence:
 
 Include 2-3 compelling, short, lowercase subject lines for each email touch to support A/B testing.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.8-flash',
-      contents: prompt,
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            personalizationSummary: {
-              type: Type.STRING,
-              description: '1-2 sentences explaining why this specific email angle will hook this client.',
-            },
-            customRedesignPitch: {
-              type: Type.STRING,
-              description: 'The core redesign value proposition formulated for this client.',
-            },
-            touches: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  step: { type: Type.INTEGER },
-                  title: { type: Type.STRING },
-                  timing: { type: Type.STRING },
-                  subjectLines: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING },
-                  },
-                  hook: { type: Type.STRING },
-                  body: { type: Type.STRING },
-                  cta: { type: Type.STRING },
+    const modelCandidates = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
+    let parsed: any = null;
+
+    for (const modelName of modelCandidates) {
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Outreach AI model timeout')), 4000)
+        );
+
+        const aiPromise = ai.models.generateContent({
+          model: modelName,
+          contents: prompt,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema: {
+              type: Type.OBJECT,
+              properties: {
+                personalizationSummary: {
+                  type: Type.STRING,
+                  description: '1-2 sentences explaining why this specific email angle will hook this client.',
                 },
-                required: ['step', 'title', 'timing', 'subjectLines', 'hook', 'body', 'cta'],
+                customRedesignPitch: {
+                  type: Type.STRING,
+                  description: 'The core redesign value proposition formulated for this client.',
+                },
+                touches: {
+                  type: Type.ARRAY,
+                  items: {
+                    type: Type.OBJECT,
+                    properties: {
+                      step: { type: Type.INTEGER },
+                      title: { type: Type.STRING },
+                      timing: { type: Type.STRING },
+                      subjectLines: {
+                        type: Type.ARRAY,
+                        items: { type: Type.STRING },
+                      },
+                      hook: { type: Type.STRING },
+                      body: { type: Type.STRING },
+                      cta: { type: Type.STRING },
+                    },
+                    required: ['step', 'title', 'timing', 'subjectLines', 'hook', 'body', 'cta'],
+                  },
+                },
               },
+              required: ['personalizationSummary', 'customRedesignPitch', 'touches'],
             },
           },
-          required: ['personalizationSummary', 'customRedesignPitch', 'touches'],
-        },
-      },
-    });
+        });
 
-    const parsed = JSON.parse(response.text || '{}');
+        const response = await Promise.race([aiPromise, timeoutPromise]);
+        if (response && response.text) {
+          parsed = JSON.parse(response.text);
+          break;
+        }
+      } catch (mErr) {
+        console.warn(`Outreach model ${modelName} error, trying fallback...`, mErr);
+      }
+    }
+
+    const cleanDomain = audit.url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
+    const defaultTouches = [
+      {
+        step: 1,
+        title: 'Initial Diagnostic Hook',
+        timing: 'Day 1 (Immediate)',
+        subjectLines: [
+          `${cleanDomain} needs a little polish`,
+          `quick idea for ${audit.companyName}`,
+          `mobile conversion bottleneck on ${cleanDomain}`,
+        ],
+        hook: `I was auditing ${cleanDomain} and noticed your mobile site takes over ${(audit.rawMetrics.loadTimeMs / 1000).toFixed(1)}s to load.`,
+        body: `Hi,\n\nI was on ${cleanDomain}, and one thing in particular caught my eye: your mobile experience currently takes over ${(audit.rawMetrics.loadTimeMs / 1000).toFixed(1)} seconds before visitors see a quote action.\n\nThere are a few simple architectural adjustments that could easily double your mobile inquiries. I sketched a quick 2-minute wireframe showing how a sticky thumb-zone consultation button and compressed gallery would capture lost inquiries.`,
+        cta: `Open to taking a quick look at the wireframe?`,
+      },
+      {
+        step: 2,
+        title: 'Wireframe Walkthrough & Follow-up',
+        timing: 'Day 3 (Follow-up)',
+        subjectLines: [
+          `2-min mockup for ${cleanDomain}`,
+          `following up re: ${cleanDomain}`,
+        ],
+        hook: `Putting a visual to my earlier note regarding ${cleanDomain}.`,
+        body: `Hi,\n\nFollowing up on my note from earlier this week. I recorded a quick 90-second screen share comparing ${cleanDomain}'s mobile load speed against local competitors who are capturing after-hours quotes.\n\nWould you like me to drop the video link here? No obligation at all.`,
+        cta: `Mind if I send the video over?`,
+      },
+      {
+        step: 3,
+        title: 'Technical Case Study & Speed Teardown',
+        timing: 'Day 7 (Technical Proof)',
+        subjectLines: [
+          `case study: +42% mobile leads for ${audit.industry}`,
+          `${cleanDomain} vs competitor speed benchmark`,
+        ],
+        hook: `How modernizing page weight directly impacts quotation volume.`,
+        body: `Hi,\n\nWhen we overhauled a similar ${audit.industry} platform last quarter, compressing unoptimized images and configuring responsive thumb-zone booking led to a 42% lift in consultation requests within 30 days.\n\nI have the complete breakdown ready for ${audit.companyName}.`,
+        cta: `Should I send the case study over?`,
+      },
+      {
+        step: 4,
+        title: 'Final 9-Word Breakup',
+        timing: 'Day 12 (Closure)',
+        subjectLines: [
+          `closing file on ${cleanDomain}`,
+          `permission to close loop?`,
+        ],
+        hook: `Checking if improving ${cleanDomain} is still on your roadmap this quarter.`,
+        body: `Hi,\n\nI haven't heard back, so I assume redesigning ${cleanDomain} isn't a priority right now.\n\nIf anything changes down the road, feel free to reach back out anytime. Wishing ${audit.companyName} continued growth!`,
+        cta: `Have you given up on modernizing ${cleanDomain}?`,
+      },
+    ];
 
     const sequence: EmailSequence = {
       id: `seq-${Date.now()}`,
@@ -119,9 +189,9 @@ Include 2-3 compelling, short, lowercase subject lines for each email touch to s
       companyName: audit.companyName,
       tone,
       createdAt: new Date().toISOString(),
-      personalizationSummary: parsed.personalizationSummary || 'Tailored to specific mobile and performance bottlenecks.',
-      customRedesignPitch: parsed.customRedesignPitch || audit.redesignSuggestion,
-      touches: parsed.touches || [],
+      personalizationSummary: parsed?.personalizationSummary || `Personalized around ${audit.companyName}'s mobile speed and conversion leaks.`,
+      customRedesignPitch: parsed?.customRedesignPitch || audit.redesignSuggestion,
+      touches: parsed?.touches && parsed.touches.length > 0 ? parsed.touches : defaultTouches,
     };
 
     return NextResponse.json({ success: true, sequence });
