@@ -127,7 +127,9 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
 
   const getFullBodyText = () => {
     if (!currentTouch) return '';
-    return `${currentTouch.body}\n\n${currentTouch.cta}\n\nBest,\n${senderName}\n${agencyName}`;
+    const hasCta = currentTouch.body.includes(currentTouch.cta);
+    const bodyWithCta = hasCta ? currentTouch.body : `${currentTouch.body}\n\n${currentTouch.cta}`;
+    return `${bodyWithCta}\n\nBest,\n${senderName}\n${agencyName}`;
   };
 
   // Dispatch email through selected or explicit provider
@@ -218,7 +220,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
   if (!sequence) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-12 text-center max-w-xl mx-auto shadow-sm">
-        <div className="h-12 w-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto mb-4">
+        <div className="h-12 w-12 rounded-2xl bg-orange-50 text-orange-600 flex items-center justify-center mx-auto mb-4">
           <Mail className="h-6 w-6" />
         </div>
         <h3 className="text-base sm:text-lg font-bold text-slate-900 font-heading mb-2">
@@ -354,7 +356,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
           {onOpenSettings && (
             <button
               onClick={onOpenSettings}
-              className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-emerald-700 font-medium transition-colors"
+              className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-orange-600 font-medium transition-colors"
             >
               <Settings className="h-3.5 w-3.5 text-slate-400" />
               <span>Configure Providers & SMTP</span>
@@ -433,11 +435,11 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
             onClick={() => setSelectedProvider('custom_smtp')}
             className={`flex items-center gap-2.5 p-3 rounded-xl border transition-all text-left ${
               selectedProvider === 'custom_smtp'
-                ? 'border-emerald-500 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-400 text-slate-900'
+                ? 'border-orange-500 bg-orange-50/70 shadow-xs ring-1 ring-orange-400 text-slate-900'
                 : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
             }`}
           >
-            <div className="p-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-600 shrink-0">
+            <div className="p-1.5 rounded-lg bg-orange-50 border border-orange-200 text-orange-600 shrink-0">
               <Server className="h-4 w-4" />
             </div>
             <div className="min-w-0">
@@ -474,7 +476,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                   ? 'bg-sky-600 hover:bg-sky-500'
                   : selectedProvider === 'yahoo'
                   ? 'bg-purple-600 hover:bg-purple-500'
-                  : 'bg-emerald-600 hover:bg-emerald-500'
+                  : 'bg-orange-500 hover:bg-orange-600'
               }`}
             >
               {isSendingSmtp ? (
@@ -566,7 +568,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
             <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Sequence Follow-ups
             </span>
-            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+            <span className="text-[10px] font-mono text-orange-700 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-200">
               4 Steps
             </span>
           </div>
@@ -582,7 +584,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                   type="button"
                   className={`text-left p-3 rounded-xl border transition-all flex flex-col justify-between shrink-0 min-w-[200px] lg:min-w-0 lg:w-full min-h-[76px] ${
                     isSelected
-                      ? 'bg-emerald-50/90 border-emerald-400 shadow-xs ring-1 ring-emerald-300'
+                      ? 'bg-orange-50/90 border-orange-400 shadow-xs ring-1 ring-orange-300'
                       : 'bg-white border-slate-200 hover:border-slate-300'
                   }`}
                 >
@@ -590,7 +592,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                     <div className="flex items-center gap-1.5">
                       <span
                         className={`text-xs font-mono font-bold ${
-                          isSelected ? 'text-emerald-800' : 'text-slate-700'
+                          isSelected ? 'text-orange-800' : 'text-slate-700'
                         }`}
                       >
                         {getTouchLabel(touch.step)}
@@ -613,7 +615,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                   <div className="mt-1 flex items-center justify-between text-[10px] text-slate-500">
                     <span>{touch.step === 1 ? 'Diagnostic hook' : `Follow-up sequence`}</span>
                     {sentInfo ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-700 font-mono font-medium">
+                      <span className="inline-flex items-center gap-1 text-orange-700 font-mono font-medium">
                         <Check className="h-2.5 w-2.5" /> Sent ({sentInfo.provider})
                       </span>
                     ) : (
@@ -640,7 +642,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
             {/* Step Header Badge & Provider Quick Indicator */}
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200/80">
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-orange-800 bg-orange-50 px-2.5 py-1 rounded-lg border border-orange-200/80">
                   {getTouchLabel(currentTouch.step)} · {currentTouch.timing}
                 </span>
                 <span className="text-xs text-slate-500 hidden sm:inline">
@@ -652,7 +654,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                 <button
                   type="button"
                   onClick={() => recordTouchSent(currentTouch.step, selectedProvider)}
-                  className="text-xs text-slate-500 hover:text-emerald-700 font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50"
+                  className="text-xs text-slate-500 hover:text-orange-600 font-medium inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 bg-white hover:bg-slate-50"
                   title="Manually mark this touch as sent"
                 >
                   <Check className="h-3 w-3" />
@@ -679,7 +681,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                       onClick={() => setSelectedSubjectIndex(sIdx)}
                       className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border cursor-pointer transition-all min-h-[44px] ${
                         isSubjectActive
-                          ? 'bg-emerald-50/70 border-emerald-300 text-slate-900 font-medium'
+                          ? 'bg-orange-50/70 border-orange-300 text-slate-900 font-medium'
                           : 'bg-slate-50/60 border-slate-200 text-slate-700 hover:bg-slate-100/60'
                       }`}
                     >
@@ -699,7 +701,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                         aria-label="Copy subject line"
                       >
                         {copiedSubjectIndex === sIdx ? (
-                          <Check className="h-4 w-4 text-emerald-600" />
+                          <Check className="h-4 w-4 text-orange-600" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}
@@ -718,12 +720,12 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                 </span>
                 <button
                   onClick={() => handleCopy(getFullBodyText(), 'body')}
-                  className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-emerald-700 font-medium transition-colors min-h-[32px]"
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-orange-600 font-medium transition-colors min-h-[32px]"
                 >
                   {copiedBody ? (
                     <>
-                      <Check className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-emerald-700">Copied!</span>
+                      <Check className="h-3.5 w-3.5 text-orange-600" />
+                      <span className="text-orange-700">Copied!</span>
                     </>
                   ) : (
                     <>
@@ -736,10 +738,14 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
 
               <div className="bg-slate-50/70 border border-slate-200 rounded-xl p-3.5 sm:p-5 font-sans text-xs sm:text-sm text-slate-800 leading-relaxed whitespace-pre-line select-text">
                 {currentTouch.body}
-                {'\n\n'}
-                <span className="font-medium text-emerald-950 bg-emerald-50/80 px-1 py-0.5 rounded">
-                  {currentTouch.cta}
-                </span>
+                {!currentTouch.body.includes(currentTouch.cta) && (
+                  <>
+                    {'\n\n'}
+                    <span className="font-medium text-orange-950 bg-orange-50/80 px-1 py-0.5 rounded">
+                      {currentTouch.cta}
+                    </span>
+                  </>
+                )}
                 {'\n\n'}
                 <span className="text-slate-500 text-xs">
                   Best,{'\n'}
@@ -768,7 +774,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                 {selectedTouchStep < sequence.touches.length ? (
                   <button
                     onClick={() => handleStepSelect(selectedTouchStep + 1)}
-                    className="inline-flex items-center gap-1 font-semibold text-emerald-700 hover:text-emerald-800 transition-colors py-1 shrink-0"
+                    className="inline-flex items-center gap-1 font-semibold text-orange-600 hover:text-orange-700 transition-colors py-1 shrink-0"
                   >
                     <span>Next Follow-up ({getTouchLabel(selectedTouchStep + 1)})</span>
                     <ArrowRight className="h-3.5 w-3.5" />

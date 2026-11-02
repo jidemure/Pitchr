@@ -217,7 +217,7 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                           <span className="text-xs font-semibold text-slate-800 block">
                             Design
                           </span>
-                          <span className="text-[10px] text-slate-400 group-hover:text-emerald-700">
+                          <span className="text-[10px] text-slate-400 group-hover:text-orange-600">
                             tap to see what Pitchr found
                           </span>
                         </div>
@@ -425,13 +425,13 @@ export const AuditModal: React.FC<AuditModalProps> = ({
 
                 {/* Animated Pulsing Radar Icon */}
                 <div className="relative flex items-center justify-center">
-                  <div className="absolute h-24 w-24 rounded-full border border-emerald-300 animate-ping opacity-25" />
-                  <div className="h-20 w-20 rounded-full border-2 border-emerald-400/80 bg-emerald-50/50 flex items-center justify-center relative shadow-sm">
-                    <div className="h-10 w-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow-xs">
+                  <div className="absolute h-24 w-24 rounded-full border border-orange-300 animate-ping opacity-25" />
+                  <div className="h-20 w-20 rounded-full border-2 border-orange-400/80 bg-orange-50/50 flex items-center justify-center relative shadow-sm">
+                    <div className="h-10 w-10 rounded-lg bg-orange-500 text-white flex items-center justify-center shadow-xs">
                       <Globe className="h-5 w-5" />
                     </div>
                     {/* Orbiting dot */}
-                    <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-white shadow-xs animate-pulse" />
+                    <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-orange-500 border-2 border-white shadow-xs animate-pulse" />
                   </div>
                 </div>
 
@@ -544,36 +544,35 @@ export const AuditModal: React.FC<AuditModalProps> = ({
 
                 {/* Email Body with Highlighting (Screenshot 03) */}
                 <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/40 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-3 font-sans">
-                  <p>Hi,</p>
-                  <p>
-                    I was on{' '}
-                    <mark className="bg-sky-100 text-sky-900 px-1 py-0.5 rounded font-mono text-[11px] sm:text-xs">
-                      {cleanDomain}
-                    </mark>
-                    , and one thing in particular caught my eye.{' '}
-                    <mark className="bg-emerald-100 text-emerald-900 px-1 py-0.5 rounded">
-                      {currentTouch?.hook || 'Letting your work speak for itself is something I respect.'}
-                    </mark>
-                  </p>
-
-                  {/* Body Paragraphs */}
                   {emailBody ? (
-                    emailBody
-                      .split('\n\n')
-                      .slice(1)
-                      .map((para, i) => <p key={i}>{para}</p>)
+                    emailBody.split('\n\n').map((para, i) => {
+                      if (para.includes(cleanDomain)) {
+                        const parts = para.split(cleanDomain);
+                        return (
+                          <p key={i}>
+                            {parts.map((part, pIdx) => (
+                              <React.Fragment key={pIdx}>
+                                {part}
+                                {pIdx < parts.length - 1 && (
+                                  <mark className="bg-sky-100 text-sky-900 px-1 py-0.5 rounded font-mono text-[11px] sm:text-xs">
+                                    {cleanDomain}
+                                  </mark>
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </p>
+                        );
+                      }
+                      return <p key={i}>{para}</p>;
+                    })
                   ) : (
-                    <>
-                      <p>
-                        There are a few things that could easily double your mobile inquiries. Your mobile site takes over 4 seconds on cellular connections before visitors see a quote button.
-                      </p>
-                      <p>
-                        I sketched a quick 2-minute wireframe showing how a sticky thumb-zone consultation button and compressed project gallery would capture lost after-hours inquiries.
-                      </p>
-                      <p className="font-medium text-slate-900">
-                        Open to taking a quick look at the wireframe?
-                      </p>
-                    </>
+                    <p className="text-slate-400 italic">No email body generated.</p>
+                  )}
+
+                  {currentTouch?.cta && !emailBody.includes(currentTouch.cta) && (
+                    <p className="font-semibold text-slate-900 pt-1">
+                      {currentTouch.cta}
+                    </p>
                   )}
                 </div>
 
@@ -588,10 +587,13 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        const fullBodyToSend = currentTouch?.cta && !emailBody.includes(currentTouch.cta)
+                          ? `${emailBody}\n\n${currentTouch.cta}`
+                          : emailBody;
                         triggerDirectProviderLaunch('gmail', {
                           to: report?.contactEmail || `contact@${cleanDomain}`,
                           subject: subjectLine,
-                          body: `${emailBody}\n\n${currentTouch?.cta || ''}`,
+                          body: fullBodyToSend,
                         });
                       }}
                       className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-red-200 text-red-700 hover:bg-red-50 transition-colors shadow-2xs"
@@ -605,10 +607,13 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        const fullBodyToSend = currentTouch?.cta && !emailBody.includes(currentTouch.cta)
+                          ? `${emailBody}\n\n${currentTouch.cta}`
+                          : emailBody;
                         triggerDirectProviderLaunch('outlook', {
                           to: report?.contactEmail || `contact@${cleanDomain}`,
                           subject: subjectLine,
-                          body: `${emailBody}\n\n${currentTouch?.cta || ''}`,
+                          body: fullBodyToSend,
                         });
                       }}
                       className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-sky-200 text-sky-700 hover:bg-sky-50 transition-colors shadow-2xs"
@@ -622,10 +627,13 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        const fullBodyToSend = currentTouch?.cta && !emailBody.includes(currentTouch.cta)
+                          ? `${emailBody}\n\n${currentTouch.cta}`
+                          : emailBody;
                         triggerDirectProviderLaunch('yahoo', {
                           to: report?.contactEmail || `contact@${cleanDomain}`,
                           subject: subjectLine,
-                          body: `${emailBody}\n\n${currentTouch?.cta || ''}`,
+                          body: fullBodyToSend,
                         });
                       }}
                       className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-purple-200 text-purple-700 hover:bg-purple-50 transition-colors shadow-2xs"
@@ -639,15 +647,18 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
+                        const fullBodyToSend = currentTouch?.cta && !emailBody.includes(currentTouch.cta)
+                          ? `${emailBody}\n\n${currentTouch.cta}`
+                          : emailBody;
                         triggerDirectProviderLaunch('mailto', {
                           to: report?.contactEmail || `contact@${cleanDomain}`,
                           subject: subjectLine,
-                          body: `${emailBody}\n\n${currentTouch?.cta || ''}`,
+                          body: fullBodyToSend,
                         });
                       }}
-                      className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-emerald-200 text-emerald-800 hover:bg-emerald-50 transition-colors shadow-2xs"
+                      className="inline-flex items-center justify-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold rounded-lg bg-white border border-orange-200 text-orange-800 hover:bg-orange-50 transition-colors shadow-2xs"
                     >
-                      <Mail className="h-3.5 w-3.5 text-emerald-600" />
+                      <Mail className="h-3.5 w-3.5 text-orange-600" />
                       <span>Custom Mail</span>
                     </button>
                   </div>
@@ -665,7 +676,7 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                       onClick={handleCopy}
                       className="inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 shadow-2xs transition-all active:scale-[0.98]"
                     >
-                      {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
+                      {copied ? <Check className="h-3.5 w-3.5 text-orange-600" /> : <Copy className="h-3.5 w-3.5 text-slate-500" />}
                       <span>{copied ? 'Copied' : 'Copy Text'}</span>
                     </button>
 
@@ -676,7 +687,7 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                           onClose();
                           onNavigateToCrm();
                         }}
-                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-all active:scale-[0.98]"
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-medium rounded-lg bg-orange-500 hover:bg-orange-600 text-white shadow-sm transition-all active:scale-[0.98]"
                       >
                         <span>Proceed to CRM Pipeline</span>
                         <ArrowRight className="h-3.5 w-3.5" />

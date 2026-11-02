@@ -16,11 +16,14 @@ import {
   X,
   Send,
   Clock,
-  Sparkles
+  Sparkles,
+  LayoutGrid,
+  List
 } from 'lucide-react';
 import { Lead, LeadStatus, EmailProvider } from '@/lib/types';
 import { formatAuditDate, getStoredSequences, updateLeadFollowUp } from '@/lib/storage';
 import { triggerDirectProviderLaunch, EMAIL_PROVIDERS_META } from '@/lib/emailDispatcher';
+import { KanbanBoardView } from '@/components/KanbanBoardView';
 
 interface LeadsPipelineViewProps {
   leads: Lead[];
@@ -45,6 +48,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
   const [industryFilter, setIndustryFilter] = useState<string>('all');
   const [sortField, setSortField] = useState<'score' | 'date'>('date');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'table' | 'kanban'>('kanban');
 
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [isIndustryDropdownOpen, setIsIndustryDropdownOpen] = useState(false);
@@ -161,7 +165,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
 
         <div className="bg-white rounded-2xl border border-slate-200/90 p-3.5 sm:p-4 shadow-xs">
           <span className="text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider block">Contacted</span>
-          <span className="text-xl sm:text-2xl font-medium font-mono text-emerald-700 mt-1 block tabular-nums">
+          <span className="text-xl sm:text-2xl font-medium font-mono text-orange-600 mt-1 block tabular-nums">
             {leads.filter((l) => l.status === 'contacted' || l.status === 'replied' || l.status === 'converted').length}
           </span>
           <span className="text-[10px] sm:text-[11px] text-slate-400">In conversation</span>
@@ -179,11 +183,41 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search leads..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 min-h-[38px]"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-orange-500 min-h-[38px]"
             />
           </div>
 
-          <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+          <div className="flex flex-wrap items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
+            {/* View Mode Switch (Table vs Kanban) */}
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg shrink-0">
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap min-h-[30px] ${
+                  viewMode === 'kanban'
+                    ? 'bg-white text-orange-600 shadow-xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Kanban Board view"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Kanban</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap min-h-[30px] ${
+                  viewMode === 'table'
+                    ? 'bg-white text-orange-600 shadow-xs font-semibold'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+                title="Table Spreadsheet view"
+              >
+                <List className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Table</span>
+              </button>
+            </div>
+
             {/* Status Filter Tabs - Scrollable on mobile */}
             <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg overflow-x-auto scrollbar-none max-w-full">
               {['all', 'audited', 'drafted', 'contacted', 'replied'].map((st) => (
@@ -192,7 +226,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                   onClick={() => setStatusFilter(st)}
                   className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors capitalize whitespace-nowrap min-h-[30px] ${
                     statusFilter === st
-                      ? 'bg-white text-slate-900 shadow-xs font-semibold'
+                      ? 'bg-white text-orange-600 shadow-xs font-semibold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -203,7 +237,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
 
             <button
               onClick={onExportCSV}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors shadow-xs shrink-0 min-h-[36px]"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200 hover:bg-orange-50 hover:text-orange-900 hover:border-orange-200 text-slate-700 transition-colors shadow-xs shrink-0 min-h-[36px]"
               title="Download Leads CSV"
             >
               <Download className="h-3.5 w-3.5 text-slate-500" />
@@ -214,14 +248,14 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
 
         {/* Active Filters Bar */}
         {(statusFilter !== 'all' || industryFilter !== 'all') && (
-          <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-emerald-50/60 border-b border-emerald-100/80 text-xs">
+          <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-orange-50/60 border-b border-orange-100/80 text-xs">
             <span className="text-slate-500 font-mono text-[11px]">Filtered by:</span>
             {statusFilter !== 'all' && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-emerald-800 font-mono text-[11px] shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white border border-orange-200 text-orange-800 font-mono text-[11px] shadow-2xs">
                 <span>Status: <strong className="capitalize">{statusFilter}</strong></span>
                 <button
                   onClick={() => setStatusFilter('all')}
-                  className="hover:text-emerald-950 p-0.5 rounded hover:bg-emerald-100/50"
+                  className="hover:text-orange-950 p-0.5 rounded hover:bg-orange-100/50"
                   title="Remove status filter"
                 >
                   <X className="h-3 w-3" />
@@ -229,11 +263,11 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
               </span>
             )}
             {industryFilter !== 'all' && (
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white border border-emerald-200 text-emerald-800 font-mono text-[11px] shadow-2xs">
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-white border border-orange-200 text-orange-800 font-mono text-[11px] shadow-2xs">
                 <span>Industry: <strong>{industryFilter}</strong></span>
                 <button
                   onClick={() => setIndustryFilter('all')}
-                  className="hover:text-emerald-950 p-0.5 rounded hover:bg-emerald-100/50"
+                  className="hover:text-orange-950 p-0.5 rounded hover:bg-orange-100/50"
                   title="Remove industry filter"
                 >
                   <X className="h-3 w-3" />
@@ -252,8 +286,21 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
           </div>
         )}
 
-        {/* Mobile View: Dedicated Card List (< md screens) */}
-        <div className="block md:hidden divide-y divide-slate-100">
+        {viewMode === 'kanban' ? (
+          <div className="p-3 sm:p-4">
+            <KanbanBoardView
+              leads={filteredLeads}
+              onSelectLeadForAudit={onSelectLeadForAudit}
+              onSelectLeadForEmail={onSelectLeadForEmail}
+              onUpdateLeadStatus={onUpdateLeadStatus}
+              onDeleteLead={onDeleteLead}
+              onQuickSend={handleQuickSend}
+            />
+          </div>
+        ) : (
+          <>
+            {/* Mobile View: Dedicated Card List (< md screens) */}
+            <div className="block md:hidden divide-y divide-slate-100">
           {filteredLeads.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-xs">
               No leads found. Analyze a website in the Auditor tab to populate your pipeline.
@@ -736,7 +783,9 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
             </tbody>
           </table>
         </div>
-      </div>
+      </>
+    )}
+  </div>
     </div>
   );
 };

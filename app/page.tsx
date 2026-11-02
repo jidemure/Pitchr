@@ -293,7 +293,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-[#fafbfc]">
+    <div className="min-h-screen flex flex-col lg:flex-row bg-[#FAF9F9]">
       {/* Left Sidebar - ONLY rendered when in workspace mode */}
       {isInWorkspace && (
         <Sidebar
@@ -327,16 +327,16 @@ export default function HomePage() {
       <div className={`flex-1 flex flex-col min-w-0 ${isInWorkspace ? 'lg:pl-64' : 'w-full'}`}>
         {/* Header: Workspace header if in workspace, clean Landing Navbar if on Homepage */}
         {isInWorkspace ? (
-          <header className="sticky top-0 z-30 lg:hidden flex items-center justify-between px-4 h-14 bg-white border-b border-slate-200/90 shadow-2xs">
+          <header className="sticky top-0 z-30 lg:hidden flex items-center justify-between px-4 h-14 bg-[#191C21] border-b border-[#2A2524] shadow-2xs">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsMobileSidebarOpen(true)}
-                className="p-1.5 rounded-lg text-slate-600 hover:bg-slate-100"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5"
                 aria-label="Open navigation menu"
               >
                 <Menu className="h-5 w-5" />
               </button>
-              <span className="font-semibold text-base text-slate-900 font-heading">
+              <span className="font-semibold text-base text-white font-heading">
                 Pitchr
               </span>
             </div>
@@ -346,7 +346,7 @@ export default function HomePage() {
                 setIsInWorkspace(false);
                 setActiveTab('scanner');
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium transition-colors"
             >
               <Sparkles className="h-3 w-3" />
               <span>New Scan</span>
@@ -356,7 +356,7 @@ export default function HomePage() {
           /* Homepage Clean Header (no sidebar) */
           <header className="w-full max-w-6xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-amber-600 text-white shadow-xs">
                 <Sparkles className="h-4 w-4" />
               </div>
               <span className="text-xl font-semibold tracking-tight text-slate-900 font-heading">
@@ -371,9 +371,9 @@ export default function HomePage() {
                     setIsInWorkspace(true);
                     setActiveTab('crm');
                   }}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 border border-slate-200/90 rounded-xl text-xs font-medium shadow-2xs transition-all active:scale-[0.98]"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white hover:bg-orange-50 text-slate-700 hover:text-orange-900 border border-slate-200/90 hover:border-orange-200 rounded-xl text-xs font-medium shadow-2xs transition-all active:scale-[0.98]"
                 >
-                  <Layers className="h-3.5 w-3.5 text-slate-500" />
+                  <Layers className="h-3.5 w-3.5 text-orange-500" />
                   <span>CRM Pipeline ({leads.length})</span>
                   <ArrowRight className="h-3 w-3 text-slate-400" />
                 </button>
@@ -383,18 +383,24 @@ export default function HomePage() {
         )}
 
         {/* Viewport Content */}
-        <main className={`flex-1 p-3.5 sm:p-6 lg:p-8 max-w-6xl w-full mx-auto ${!isInWorkspace ? 'flex flex-col justify-center' : ''}`}>
+        <main
+          className={`flex-1 ${
+            isInWorkspace
+              ? 'w-full px-4 sm:px-6 lg:px-8 py-6'
+              : 'w-full max-w-6xl mx-auto p-3.5 sm:p-6 lg:p-8 flex flex-col justify-center'
+          }`}
+        >
           {/* Toast Notification */}
           {toastMessage && (
             <div
               className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 p-3 sm:p-4 rounded-xl shadow-lg border text-xs sm:text-sm font-medium flex items-center gap-2.5 transition-all transform animate-bounce-subtle ${
                 toastMessage.type === 'success'
-                  ? 'bg-emerald-950 text-white border-emerald-800'
+                  ? 'bg-[#191C21] text-white border-orange-500/40 shadow-orange-950/20'
                   : 'bg-rose-950 text-white border-rose-800'
               }`}
             >
               {toastMessage.type === 'success' ? (
-                <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+                <CheckCircle2 className="h-4 w-4 text-orange-400 shrink-0" />
               ) : (
                 <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
               )}

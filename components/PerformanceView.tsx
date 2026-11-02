@@ -367,8 +367,8 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-5">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono text-emerald-800 font-semibold uppercase tracking-wider mb-1">
-            <BarChart3 className="h-4 w-4 text-emerald-600" />
+          <div className="flex items-center gap-2 text-xs font-mono text-orange-800 font-semibold uppercase tracking-wider mb-1">
+            <BarChart3 className="h-4 w-4 text-orange-600" />
             <span>Outreach Analytics Engine</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-bold text-slate-900 font-heading">
@@ -384,9 +384,9 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
             <button
               type="button"
               onClick={handleSeedDemoData}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-orange-300 bg-orange-50 text-orange-800 hover:bg-orange-100 transition-colors shadow-2xs"
             >
-              <Sparkles className="h-3.5 w-3.5 text-emerald-600" />
+              <Sparkles className="h-3.5 w-3.5 text-orange-600" />
               <span>Load Sample Data</span>
             </button>
           )}
@@ -394,7 +394,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
           <button
             type="button"
             onClick={onNavigateToScanner}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg bg-orange-500 hover:bg-orange-600 text-white shadow-sm transition-all active:scale-[0.98]"
           >
             <PlusCircle className="h-4 w-4" />
             <span>New Website Scan</span>
@@ -410,7 +410,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-medium">
               TOTAL SENT
             </span>
-            <div className="h-8 w-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
               <Send className="h-4 w-4" />
             </div>
           </div>
@@ -513,7 +513,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
             </div>
             <div className="flex items-center gap-2 text-xs font-mono text-slate-500">
               <span className="inline-flex items-center gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-600" />
+                <span className="h-2.5 w-2.5 rounded-full bg-[#F97316]" />
                 <span>Sent</span>
               </span>
               <span className="inline-flex items-center gap-1">
@@ -556,7 +556,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
                     }}
                     cursor={{ fill: '#f8fafc' }}
                   />
-                  <Bar dataKey="Sent" fill="#059669" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                  <Bar dataKey="Sent" fill="#F97316" radius={[4, 4, 0, 0]} maxBarSize={32} />
                   <Bar dataKey="Opened" fill="#0284c7" radius={[4, 4, 0, 0]} maxBarSize={32} />
                   <Bar dataKey="Responded" fill="#7c3aed" radius={[4, 4, 0, 0]} maxBarSize={32} />
                 </BarChart>

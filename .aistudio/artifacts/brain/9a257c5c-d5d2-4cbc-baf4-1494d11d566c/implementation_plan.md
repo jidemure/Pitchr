@@ -1,143 +1,108 @@
-# Swokei Engine: AI Website Audit & Cold Email Pipeline
+# Aura Design System Restyling
 
-An end-to-end client acquisition engine for web design and development agencies. It audits outdated prospect websites for design flaws, SEO weaknesses, mobile issues, and speed bottlenecks, transforming those diagnostic insights into hyper-personalized, multi-stage cold email sequences that convert.
+Restyling Pitchr with the **Aura** design specification: dark obsidian structural surfaces (`#191C21`), warm off-white content canvas (`#FAF9F9`), high-energy orange accents (`#F97316`), and refined typography.
 
----
-
-### User Review & Critical Decisions
+## User Review & Critical Decisions
 
 > [!IMPORTANT]
-> The following product specifications were confirmed during our initial requirements review:
-> - **Audit Strategy**: Live server-side HTML scraping combined with Gemini 3.8 Flash analysis to diagnose visual hierarchy, outdated UI patterns, mobile responsiveness, and SEO tags.
-> - **Outreach Strategy**: Multi-stage cold email sequences (Value-first teaser, detailed critique + redesign suggestion, polite follow-up, and break-up email) with customized subject lines and objection handling.
-> - **Database Strategy**: Hybrid persistence. Provides immediate browser-local persistence (zero-setup offline sandbox) alongside an integrated Supabase connector modal where users can connect their Supabase URL and anon key to sync leads and campaigns into real cloud tables.
+> The following user preferences were confirmed during clarification:
+> - **Layout Posture**: Dark obsidian (`#191C21`) sidebar and header accents paired with a clean, warm off-white canvas (`#FAF9F9`) for optimal legibility and contrast.
+> - **Primary Accent Transition**: Comprehensive transition from the legacy green palette to Aura's vibrant orange (`#F97316` / `#FB923C`) across all primary CTAs, active navigation items, brand emblems, and interactive focus states.
+
+- **Confirmed Decision 1**: Apply `#191C21` dark obsidian to the fixed navigation sidebar with hairline `#2A2524` borders, light typography, and orange glow active states.
+- **Confirmed Decision 2**: Content canvas background set to `#FAF9F9` with refined card radius (`rounded-2xl` / 16px) and button/control radius (`rounded-lg` / 8px).
+- **Confirmed Decision 3**: Typography harmonized to Inter display headers, Geist body text, and JetBrains Mono / tabular figures for metrics, scores, and dates.
 
 ---
 
-### 1. Overview & Core Concept
+## 1. Overview & Core Concept
 
-- **What It Does**: Automates the painful manual research agencies perform when hunting for redesign clients. Users enter prospect URLs (single audit or bulk list), the engine evaluates performance indicators, visual age, meta tags, and mobile readiness, and instantly generates custom redesign pitch angles and copy-ready cold email sequences.
-- **Target Audience / Persona**: Web design agencies, freelance UI/UX developers, digital marketing firms, and conversion rate optimization (CRO) consultants.
-- **Key Value**: Replaces generic, low-converting mass cold email blasts with tailored, flaw-specific pitches that cite tangible issues (e.g., non-responsive navigation, missing OpenGraph cards, outdated font stacks, uncompressed hero banners) and propose concrete fixes.
-
----
-
-### 2. User Experience & Visual Design
-
-#### Key User Flows
-1. **Audit Launchpad**:
-   - Agency user pastes a prospect's domain (e.g. `example-plumbing.com`) or loads sample prospect websites with varying degrees of design rot (outdated 2012 layout, broken mobile viewport, slow uncompressed assets, missing SEO).
-   - Live scanning indicator steps through stages: Fetching DOM $\rightarrow$ Parsing SEO & Meta tags $\rightarrow$ Evaluating UX/Aesthetics with Gemini $\rightarrow$ Synthesizing Audit Scorecard.
-2. **Interactive Audit Scorecard**:
-   - Comprehensive diagnostic breakdown across 4 key dimensions:
-     - **Design & UX Freshness**: Visual age, typography scale, modern contrast, layout balance.
-     - **Mobile Optimization**: Viewport tags, tap target density, responsive structure.
-     - **Performance & Speed**: Asset weight indicators, scripts, resource bottlenecks.
-     - **SEO & Discoverability**: Title, description, OpenGraph tags, schema markup, header hierarchy.
-   - Live "Client Teaser Preview": A shareable audit card view that can be linked or embedded in outbound emails.
-3. **Multi-Stage Cold Email Studio**:
-   - Generates a customized 4-touch outreach campaign:
-     - *Touch 1 (The Hook)*: Value-led observation highlighting 1 major flaw and a low-friction offer.
-     - *Touch 2 (The Redesign Teaser)*: Actionable mockup pitch detailing specific UX improvements and expected conversion gains.
-     - *Touch 3 (The Case Study / Follow-Up)*: Social proof, ROI framing, and low-pressure demo question.
-     - *Touch 4 (The Respectful Break-Up)*: Leaves the door open with goodwill and links to the full web audit.
-   - Tone & Angle switcher: "Casual Freelancer", "Boutique Design Agency", "Direct ROI / Performance Focused".
-   - One-click copy, quick-edit markdown, and mailto/export to CSV format.
-4. **Lead CRM & Outreach Pipeline**:
-   - Filter and search leads by audit score, status (`Audited`, `Drafted`, `Contacted`, `Replied`, `Won`), or date.
-   - Bulk actions: batch re-audit, batch export, mark contacted.
-5. **Supabase Connector & Settings**:
-   - Intuitive settings panel to input Supabase Project URL + Anon API Key.
-   - "Test Connection" button with automated schema verification and table creation guide (`leads`, `audits`, `email_campaigns`).
-   - Seamless sync toggle between Local Storage and Supabase Cloud.
-
-#### Visual Identity & Theme
-- **Aesthetic Direction**: High-trust, sleek B2B SaaS console inspired by the Neuform CreatorStudio design system and modern developer tools (Vercel, Linear, Raycast).
-- **Color Palette**:
-  - Dominant Canvas: Crisp neutral white (`#FFFFFF`) with cool slate accents (`#0F172A`).
-  - Structural Surfaces: Soft emerald-tinted surface tones (`#F0F5F2` / `#F8FAFC`), crisp hairline dividers (`#E2E8F0`).
-  - Primary Accent: Precision Emerald (`#10B981` / `#059669`) for primary calls to action, badges, and high-conversion states.
-  - Semantic Status: Rose (`#EF4444`) for critical audit alerts, Amber (`#F59E0B`) for warnings, Emerald (`#10B981`) for passing criteria.
-- **Typography**:
-  - Display & Headings: `Plus Jakarta Sans` for clean, contemporary authority.
-  - Body Copy: `DM Sans` for crisp legibility across dense data tables and long email previews.
-  - Tabular & Metrics: `JetBrains Mono` with `tabular-nums` for scores, timestamps, and technical audit tags.
-- **Micro-Interactions**:
-  - Smooth stage transitions with `motion/react`.
-  - Copy button feedback with confirmation toast.
-  - Tabbed email touchpoint navigation with animated active slider.
+- **What It Does**: Elevates Pitchr from a generic dashboard aesthetic into a modern B2B SaaS platform inspired by Aura. Combines a dark sidebar with a warm off-white workspace canvas, striking orange accent CTAs, and refined typography.
+- **Target Audience / Persona**: Growth agency founders, web development studio leads, and cold outreach specialists looking for an executive-grade platform.
+- **Key Value**: Provides a high-contrast visual identity that makes audits, score breakdowns, and Kanban pipelines feel fast, authoritative, and tactile.
 
 ---
 
-### 3. Key Product Decisions & Trade-Offs
+## 2. User Experience & Visual Design
 
-- **Decision 1: Server-Side Web Fetching & Gemini Multi-Modal Analysis**
-  - *Chosen Approach*: Next.js API route (`/api/audit/scan`) that securely fetches the target website's HTML/DOM on the server, parses structured technical metadata (title, meta tags, scripts, stylesheets, viewport), and passes technical signals + DOM extracts to Gemini 3.8 Flash (`@google/genai`) for nuanced UX and aesthetic critique.
-  - *Why*: Direct client-side `fetch` from the browser is blocked by CORS. Server-side scraping with fallback handling provides reliable DOM extraction, while Gemini performs genuine human-grade design analysis rather than superficial regexes.
-- **Decision 2: Hybrid Supabase & Local Database Architecture**
-  - *Chosen Approach*: Local storage as the instant, zero-friction default for immediate demonstration and testing, backed by an integrated Supabase client (`@supabase/supabase-js`) that activates whenever user credentials are provided in settings.
-  - *Why*: Allows anyone to immediately test and use the app out of the box without requiring manual cloud database credentials, while giving real agencies seamless cloud sync to their own Supabase PostgreSQL tables.
-- **Decision 3: Multi-Touch Sequence Generation with Structured JSON Output**
-  - *Chosen Approach*: Utilizing `@google/genai` with `responseMimeType: "application/json"` and `responseSchema` to guarantee consistent, structured 4-stage cold emails with subject variations and personalization anchors.
-  - *Why*: Prevents parsing bugs or broken markdown templates, giving the user clean fields for subject lines, body paragraphs, and call-to-actions ready for immediate copy or CRM export.
+### Palette Distribution (60-30-10 Rule)
+- **60% Dominant Canvas**: Warm off-white (`#FAF9F9` / `bg-[#FAF9F9]`) for page backgrounds, avoiding blinding stark white while maintaining crisp contrast.
+- **30% Structural Surfaces**: Dark obsidian (`#191C21` / `border-[#2A2524]`) for the sidebar, user profile card, modal headers, and contrasting stat banners; crisp white (`bg-white`) for data cards and table containers.
+- **10% High-Intent Accent**: Aura Tangerine Orange (`#F97316` primary, `#FB923C` hover/accent) reserved strictly for:
+  - Primary CTA buttons (`New Website Scan`, `Export CSV`, `Launch Outreach`)
+  - Active navigation state in the sidebar
+  - Brand mark icon badge
+  - Kanban drag highlights and drop targets
+  - High-urgency audit issues and active filters
+
+### Typography & Spacing Math
+- **Display**: Inter / semi-bold heading font (`font-heading font-semibold tracking-tight text-slate-900`) for top headers and section titles.
+- **Body**: Geist / clean sans (`text-slate-600` / `text-slate-800`, line-height 1.6) for card descriptions and email copy.
+- **Telemetry & Numerals**: JetBrains Mono (`font-mono tabular-nums`) for health scores, dates, domain URLs, and step indicators.
+- **Radius Geometry**:
+  - Cards & Containers: `rounded-2xl` (16px)
+  - Interactive Buttons & Inputs: `rounded-lg` (8px)
+  - Badges & Pills: `rounded-full` (9999px)
+
+### Component Refinements
+1. **Sidebar Navigation**:
+   - Background: Dark obsidian (`bg-[#191C21] text-white border-r border-[#2A2524]`).
+   - Brand Emblem: Orange gradient icon (`bg-gradient-to-br from-orange-500 to-amber-600`).
+   - Active Tab: High-contrast orange pill highlight (`bg-orange-500/15 text-orange-400 font-semibold border-l-2 border-orange-500`).
+   - Inactive Tabs: Subtle light slate (`text-slate-400 hover:text-white hover:bg-white/5`).
+   - User Profile Card: Sleek dark surface (`bg-[#22262F] border border-[#2A2524]`) with user avatar.
+2. **Dashboard Overview**:
+   - Hero button: `bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-sm`.
+   - KPI Stat cards: Clean white with subtle border, orange trend icons, and mono numbers.
+   - Recent Scans table: Clean row hover styling with orange score badges.
+3. **CRM Pipeline & Kanban Board**:
+   - View Mode Switch: `[ ⊞ Kanban | ≡ Table ]` with orange active state.
+   - Kanban Column Headers: Obsidian/orange accent borders (`border-t-orange-500`).
+   - Drop Target: Dashed orange highlight (`border-orange-400 bg-orange-500/5`).
+   - Quick "Pitch" button: Orange micro-action button (`bg-orange-50 hover:bg-orange-100 text-orange-700 border-orange-200`).
+4. **Email Studio & Audit Modal**:
+   - Tabs and action buttons updated to Aura orange.
+   - Provider launcher buttons (Gmail, Outlook, Yahoo, Custom Mail) styled with consistent rounded-lg geometry.
 
 ---
 
-### 4. Technical Architecture & Data Strategy
+## 3. Key Product Decisions & Trade-Offs
+
+- **Decision 1: Dual-Contrast Layout (Dark Sidebar + Warm Light Canvas)**:
+  - *Chosen Approach*: Dark obsidian `#191C21` sidebar paired with `#FAF9F9` warm workspace canvas.
+  - *Why*: Balances executive desktop aesthetic with high-density tabular readability. Long data tables and email drafts are significantly easier to read on a light canvas than on an all-dark spreadsheet.
+  - *Alternatives Considered*: Full dark mode across all tables was considered, but risks reduced readability for long-form email copy reviews.
+- **Decision 2: Global Tailwind & Token Consistency**:
+  - *Chosen Approach*: Update `globals.css` with the new theme background `#FAF9F9` and replace legacy `emerald-*` classes across views with `orange-*` tokens and `#191C21` surfaces.
+  - *Why*: Eliminates color fragmentation across the applet and ensures every view feels cohesive.
+
+---
+
+## 4. Technical Architecture & System Layout
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                             CLIENT UI                                  │
-│  ┌─────────────────────────┐  ┌──────────────────────────────────────┐ │
-│  │ Single & Bulk URL Input │  │ Scorecard & Visual Redesign Mockup   │ │
-│  └────────────┬────────────┘  └──────────────────┬───────────────────┘ │
-│               │                                  │                     │
-│  ┌────────────▼────────────┐  ┌──────────────────▼───────────────────┐ │
-│  │ Lead CRM & Pipeline Tab │  │ Cold Email Studio (4-Touch Sequence) │ │
-│  └────────────┬────────────┘  └──────────────────┬───────────────────┘ │
-└───────────────┼──────────────────────────────────┼─────────────────────┘
-                │                                  │
-                ▼                                  ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        NEXT.JS SERVER API                              │
-│  ┌──────────────────────────────┐  ┌─────────────────────────────────┐ │
-│  │  POST /api/audit/scan        │  │  POST /api/outreach/generate    │ │
-│  │  - Safe DOM fetcher & parser │  │  - Gemini 3.8 Flash             │ │
-│  │  - Speed & SEO analyzer      │  │  - Structured JSON response     │ │
-│  │  - Gemini design critique    │  │  - Multi-stage sequences        │ │
-│  └──────────────┬───────────────┘  └─────────────────┬───────────────┘ │
-└─────────────────┼────────────────────────────────────┼─────────────────┘
-                  │                                    │
-                  ▼                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                       DATA PERSISTENCE LAYER                           │
-│  ┌──────────────────────────────┐  ┌─────────────────────────────────┐ │
-│  │ Browser Local Storage Cache  │  │ Supabase Client (@supabase/js)  │ │
-│  │ (Zero-setup instant CRM)     │  │ (Cloud PostgreSQL Sync)         │ │
-│  └──────────────────────────────┘  └─────────────────────────────────┘ │
-└────────────────────────────────────────────────────────────────────────┘
+│                        App Root (app/page.tsx)                         │
+│                    Canvas Background: bg-[#FAF9F9]                     │
+├──────────────────────────┬─────────────────────────────────────────────┤
+│   Sidebar (Sidebar.tsx)  │              Main Workspace Area            │
+│   Surface: #191C21       │   Header & Hero CTAs (Orange #F97316)       │
+│   Border: #2A2524        ├─────────────────────────────────────────────┤
+│   Active: Orange #F97316 │   Active View Container:                    │
+│   Avatar: Tariq Lanez    │   - DashboardView.tsx                       │
+│                          │   - LeadsPipelineView.tsx (Table / Kanban)  │
+│                          │   - KanbanBoardView.tsx                     │
+│                          │   - EmailStudioView.tsx                     │
+│                          │   - PerformanceView.tsx                     │
+└──────────────────────────┴─────────────────────────────────────────────┘
 ```
 
-#### Core Data Entities
-- **Lead / Prospect**:
-  - `id`: string (uuid)
-  - `url`: string
-  - `companyName`: string
-  - `industry`: string
-  - `status`: `'audited' | 'drafted' | 'contacted' | 'replied' | 'converted'`
-  - `overallScore`: number (0-100)
-  - `createdAt`: ISO timestamp
-- **Audit Result**:
-  - `id`: string
-  - `leadId`: string
-  - `scores`: `{ design: number, speed: number, mobile: number, seo: number }`
-  - `detectedIssues`: `Array<{ category: string, severity: 'critical' | 'warning' | 'info', title: string, description: string, recommendation: string }>`
-  - `techStackDetected`: `string[]`
-  - `visualFlaws`: `string[]`
-- **Email Sequence**:
-  - `id`: string
-  - `leadId`: string
-  - `touches`: `Array<{ step: number, name: string, subjectLines: string[], body: string, hook: string, cta: string }>`
-  - `personalizationSnippets`: `string[]`
-
----
+### Component Update Scope:
+- `app/globals.css`: Set canvas background token to `#FAF9F9` and text to `#111827`.
+- `components/Sidebar.tsx`: Transform to dark obsidian `#191C21`, `#2A2524` borders, orange active tabs, and refined profile card.
+- `components/DashboardView.tsx`: Replace emerald CTAs and highlights with `#F97316` orange.
+- `components/LeadsPipelineView.tsx`: Restyle filters, view toggle, and search inputs with orange accents.
+- `components/KanbanBoardView.tsx`: Update drop indicators, pitch buttons, and column accents to Aura palette.
+- `components/EmailStudioView.tsx`: Restyle sequence tabs, dispatch buttons, and tone selectors.
+- `components/AuditInput.tsx`: Update landing hero input and scan button with Aura orange.
+- `components/AuditModal.tsx`: Harmonize modal headers and CTA buttons.

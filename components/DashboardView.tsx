@@ -59,7 +59,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <button
           onClick={onNavigateToScanner}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-medium rounded-xl shadow-xs transition-all active:scale-[0.98] self-start sm:self-auto"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-medium rounded-lg shadow-sm transition-all active:scale-[0.98] self-start sm:self-auto"
         >
           <Sparkles className="h-4 w-4" />
           <span>New Website Scan</span>
@@ -74,7 +74,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500">
               Total Audited
             </span>
-            <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+            <div className="p-1.5 rounded-lg bg-orange-50 text-orange-600">
               <Globe className="h-4 w-4" />
             </div>
           </div>
@@ -120,7 +120,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <Mail className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-semibold font-mono text-emerald-700">
+          <div className="text-2xl sm:text-3xl font-semibold font-mono text-orange-600">
             {draftedSequencesCount}
           </div>
           <p className="text-[11px] text-slate-500">
@@ -160,7 +160,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <button
             onClick={onNavigateToCrm}
-            className="text-xs font-medium text-emerald-700 hover:text-emerald-800 inline-flex items-center gap-1"
+            className="text-xs font-medium text-orange-600 hover:text-orange-700 inline-flex items-center gap-1"
           >
             <span>View Full CRM</span>
             <ArrowRight className="h-3.5 w-3.5" />
@@ -183,7 +183,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <tr>
                   <td colSpan={5} className="py-12 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center space-y-2.5 max-w-sm mx-auto">
-                      <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-700">
+                      <div className="p-3 bg-orange-50 rounded-2xl text-orange-600">
                         <Globe className="h-5 w-5" />
                       </div>
                       <p className="font-semibold text-slate-900 text-sm">
@@ -194,7 +194,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </p>
                       <button
                         onClick={onNavigateToScanner}
-                        className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-medium transition-all shadow-xs"
+                        className="mt-2 inline-flex items-center gap-1.5 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-medium transition-all shadow-sm"
                       >
                         <Sparkles className="h-3.5 w-3.5" />
                         <span>Run First Live Scan</span>
@@ -235,7 +235,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <td className="py-3 text-right whitespace-nowrap">
                         <button
                           onClick={() => onSelectLeadForAuditModal(lead)}
-                          className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-800 text-slate-700 font-medium rounded-lg text-xs transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 hover:bg-orange-50 hover:text-orange-800 text-slate-700 font-medium rounded-lg text-xs transition-colors"
                         >
                           <span>Open Modal</span>
                           <ArrowRight className="h-3 w-3" />

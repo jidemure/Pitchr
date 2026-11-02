@@ -29,7 +29,7 @@ export const AuditInput: React.FC<AuditInputProps> = ({ onStartAudit, isLoading 
       <div className="w-full max-w-3xl mx-auto text-center space-y-6 sm:space-y-8">
         {/* Subtle Eyebrow */}
         <div className="inline-flex items-center gap-2 text-xs font-mono text-slate-500 tracking-wider">
-          <span className="text-emerald-700 font-medium">WEBSITE AUDIT SCANNER</span>
+          <span className="text-orange-600 font-semibold">WEBSITE AUDIT SCANNER</span>
           <span aria-hidden="true" className="text-slate-300">/</span>
           <span>GEMINI 3.8 FLASH</span>
         </div>
@@ -50,7 +50,7 @@ export const AuditInput: React.FC<AuditInputProps> = ({ onStartAudit, isLoading 
         <div className="w-full max-w-2xl mx-auto pt-2">
           <form
             onSubmit={handleSubmit}
-            className="p-1.5 sm:p-2 bg-white rounded-2xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-stretch gap-2 transition-all focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20"
+            className="p-1.5 sm:p-2 bg-white rounded-2xl border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-stretch gap-2 transition-all focus-within:border-orange-500 focus-within:ring-2 focus-within:ring-orange-500/20"
           >
             <div className="relative flex-1 flex items-center">
               <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
@@ -70,7 +70,7 @@ export const AuditInput: React.FC<AuditInputProps> = ({ onStartAudit, isLoading 
             <button
               type="submit"
               disabled={isLoading || !url.trim()}
-              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl transition-all shadow-xs active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap min-h-[46px] shrink-0"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all shadow-sm active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-xs sm:text-sm whitespace-nowrap min-h-[46px] shrink-0"
             >
               {isLoading ? (
                 <>
@@ -89,16 +89,16 @@ export const AuditInput: React.FC<AuditInputProps> = ({ onStartAudit, isLoading 
 
         {/* Minimal Feature Highlights */}
         <div className="pt-8 sm:pt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left max-w-2xl mx-auto">
-          <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/60 text-xs space-y-1">
-            <span className="font-mono text-[10px] text-emerald-700 font-semibold uppercase block">01. Live DOM Audit</span>
+          <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/80 text-xs space-y-1">
+            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">01. Live DOM Audit</span>
             <p className="text-slate-500">Detects mobile viewport, uncompressed images, and SEO tags.</p>
           </div>
-          <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/60 text-xs space-y-1">
-            <span className="font-mono text-[10px] text-emerald-700 font-semibold uppercase block">02. Gemini Critique</span>
+          <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/80 text-xs space-y-1">
+            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">02. Gemini Critique</span>
             <p className="text-slate-500">Evaluates aesthetic age, visual hierarchy, and conversion leaks.</p>
           </div>
-          <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/60 text-xs space-y-1">
-            <span className="font-mono text-[10px] text-emerald-700 font-semibold uppercase block">03. Cold Pitch Flow</span>
+          <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/80 text-xs space-y-1">
+            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">03. Cold Pitch Flow</span>
             <p className="text-slate-500">Generates ready-to-send 4-touch sequences and saves to CRM.</p>
           </div>
         </div>
