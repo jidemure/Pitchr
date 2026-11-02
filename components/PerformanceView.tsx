@@ -358,7 +358,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-12">
       {/* Toast Notification */}
       {logToast && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-800 text-xs sm:text-sm font-medium flex items-center gap-2 animate-bounce-subtle">
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-800 text-xs sm:text-sm font-medium flex items-center gap-2 animate-fade-in">
           <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
           <span>{logToast}</span>
         </div>
@@ -457,19 +457,19 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
             <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 font-medium">
               REPLY RATE
             </span>
-            <div className="h-8 w-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-xl bg-orange-50 text-orange-700 flex items-center justify-center">
               <MessageSquare className="h-4 w-4" />
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-purple-950 font-heading">
+            <span className="text-2xl sm:text-3xl font-bold text-slate-900 font-heading">
               {aggregateMetrics.overallReplyRate}%
             </span>
             <span className="text-xs text-slate-500 font-sans">
               ({aggregateMetrics.totalResponded} replies)
             </span>
           </div>
-          <div className="text-[11px] text-purple-700 font-medium flex items-center gap-1">
+          <div className="text-[11px] text-orange-700 font-medium flex items-center gap-1">
             <span>High conversion audit hooks</span>
           </div>
         </div>

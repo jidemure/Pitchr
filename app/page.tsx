@@ -393,7 +393,7 @@ export default function HomePage() {
           {/* Toast Notification */}
           {toastMessage && (
             <div
-              className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 p-3 sm:p-4 rounded-xl shadow-lg border text-xs sm:text-sm font-medium flex items-center gap-2.5 transition-all transform animate-bounce-subtle ${
+              className={`fixed bottom-4 left-4 right-4 sm:left-auto sm:right-6 sm:bottom-6 z-50 p-3 sm:p-4 rounded-xl shadow-lg border text-xs sm:text-sm font-medium flex items-center gap-2.5 transition-all transform animate-fade-in ${
                 toastMessage.type === 'success'
                   ? 'bg-[#191C21] text-white border-orange-500/40 shadow-orange-950/20'
                   : 'bg-rose-950 text-white border-rose-800'

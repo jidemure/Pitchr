@@ -101,7 +101,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const colorOptions = [
     { label: 'Emerald', value: 'from-emerald-500 to-teal-600', dot: 'bg-emerald-500' },
     { label: 'Blue', value: 'from-blue-600 to-indigo-600', dot: 'bg-blue-500' },
-    { label: 'Violet', value: 'from-violet-600 to-purple-600', dot: 'bg-violet-500' },
+    { label: 'Obsidian', value: 'from-slate-800 to-slate-950', dot: 'bg-slate-900' },
     { label: 'Amber', value: 'from-amber-500 to-orange-600', dot: 'bg-amber-500' },
     { label: 'Rose', value: 'from-rose-500 to-pink-600', dot: 'bg-rose-500' },
   ];

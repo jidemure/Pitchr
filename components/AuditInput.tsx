@@ -90,15 +90,15 @@ export const AuditInput: React.FC<AuditInputProps> = ({ onStartAudit, isLoading 
         {/* Minimal Feature Highlights */}
         <div className="pt-8 sm:pt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 text-left max-w-2xl mx-auto">
           <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/80 text-xs space-y-1">
-            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">01. Live DOM Audit</span>
+            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">Live DOM Inspection</span>
             <p className="text-slate-500">Detects mobile viewport, uncompressed images, and SEO tags.</p>
           </div>
           <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/80 text-xs space-y-1">
-            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">02. Gemini Critique</span>
+            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">Gemini Visual Critique</span>
             <p className="text-slate-500">Evaluates aesthetic age, visual hierarchy, and conversion leaks.</p>
           </div>
           <div className="p-3.5 rounded-xl border border-slate-200/70 bg-white/80 text-xs space-y-1">
-            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">03. Cold Pitch Flow</span>
+            <span className="font-mono text-[10px] text-orange-600 font-semibold uppercase block">4-Touch Pitch Studio</span>
             <p className="text-slate-500">Generates ready-to-send 4-touch sequences and saves to CRM.</p>
           </div>
         </div>

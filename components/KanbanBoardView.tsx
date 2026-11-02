@@ -36,7 +36,7 @@ interface ColumnDef {
   description: string;
   badgeBg: string;
   badgeText: string;
-  accentBorder: string;
+  dotBg: string;
 }
 
 const COLUMNS: ColumnDef[] = [
@@ -46,7 +46,7 @@ const COLUMNS: ColumnDef[] = [
     description: 'New audit ready',
     badgeBg: 'bg-slate-100',
     badgeText: 'text-slate-700',
-    accentBorder: 'border-t-slate-400'
+    dotBg: 'bg-slate-400'
   },
   {
     id: 'drafted',
@@ -54,7 +54,7 @@ const COLUMNS: ColumnDef[] = [
     description: 'Pitch synthesized',
     badgeBg: 'bg-blue-100',
     badgeText: 'text-blue-800',
-    accentBorder: 'border-t-blue-500'
+    dotBg: 'bg-blue-500'
   },
   {
     id: 'contacted',
@@ -62,7 +62,7 @@ const COLUMNS: ColumnDef[] = [
     description: 'Outreach dispatched',
     badgeBg: 'bg-amber-100',
     badgeText: 'text-amber-800',
-    accentBorder: 'border-t-amber-500'
+    dotBg: 'bg-amber-500'
   },
   {
     id: 'replied',
@@ -70,7 +70,7 @@ const COLUMNS: ColumnDef[] = [
     description: 'Warm prospect',
     badgeBg: 'bg-indigo-100',
     badgeText: 'text-indigo-800',
-    accentBorder: 'border-t-indigo-500'
+    dotBg: 'bg-indigo-500'
   },
   {
     id: 'converted',
@@ -78,7 +78,7 @@ const COLUMNS: ColumnDef[] = [
     description: 'Meeting / Deal closed',
     badgeBg: 'bg-emerald-100',
     badgeText: 'text-emerald-800',
-    accentBorder: 'border-t-emerald-500'
+    dotBg: 'bg-emerald-500'
   }
 ];
 
@@ -218,10 +218,11 @@ export const KanbanBoardView: React.FC<KanbanBoardViewProps> = ({
             >
               {/* Column Header */}
               <div
-                className={`p-3.5 border-b border-slate-200/70 bg-white rounded-t-2xl border-t-4 ${column.accentBorder} flex items-center justify-between gap-2`}
+                className="p-3.5 border-b border-slate-200/70 bg-white rounded-t-2xl flex items-center justify-between gap-2"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full shrink-0 ${column.dotBg}`} />
                     <h3 className="font-semibold text-slate-900 text-xs sm:text-sm font-heading truncate">
                       {column.title}
                     </h3>

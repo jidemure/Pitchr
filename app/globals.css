@@ -9,6 +9,17 @@
     --font-heading: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
     --font-body: 'Geist', 'DM Sans', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Impeccable Craft Floor: Themed Browser Surfaces */
+  ::selection {
+    background-color: #FED7AA;
+    color: #191C21;
+  }
+
+  * {
+    caret-color: #F97316;
   }
 
   body {
@@ -19,17 +30,56 @@
     text-rendering: optimizeLegibility;
   }
 
-  /* Taste-Skill typography: Elegant, controlled weights instead of harsh heavy bold */
+  /* Sleek, un-chunky custom scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #CBD5E1;
+    border-radius: 9999px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #94A3B8;
+  }
+
+  /* Accessible focus indicators with brand offset */
+  :focus-visible {
+    outline: 2px solid #F97316;
+    outline-offset: 2px;
+  }
+
+  /* Accessible Reduced Motion support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Taste & Typography: balanced heading rhythm, optical weights, tabular numbers */
   h1 {
     font-family: var(--font-heading);
     font-weight: 500;
     letter-spacing: -0.03em;
+    text-wrap: balance;
   }
 
   h2, h3 {
     font-family: var(--font-heading);
     font-weight: 500;
     letter-spacing: -0.02em;
+    text-wrap: balance;
   }
 
   h4, h5, h6 {
