@@ -1,46 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai';
 import { AuditReport, RawMetrics, AuditIssue } from '@/lib/types';
+import {
+  normalizeUrl,
+  extractDomainName,
+  deriveCompanyName,
+  isSafePublicUrl,
+  createRateLimiter,
+} from '@/lib/auditHelpers';
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    },
-  },
-});
+const scanRateLimiter = createRateLimiter(60000, 20); // 20 scans per minute per IP
 
-function normalizeUrl(inputUrl: string): string {
-  let url = inputUrl.trim();
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://' + url;
-  }
-  return url;
-}
-
-function extractDomainName(urlStr: string): string {
-  try {
-    const parsed = new URL(urlStr);
-    return parsed.hostname.replace(/^www\./, '');
-  } catch {
-    return urlStr;
-  }
-}
-
-function deriveCompanyName(domain: string, htmlTitle?: string): string {
-  if (htmlTitle && htmlTitle.length > 2 && !htmlTitle.toLowerCase().includes('just a moment') && !htmlTitle.toLowerCase().includes('404')) {
-    // Clean up title: e.g. "Apex HVAC Solutions | Heating & Cooling" -> "Apex HVAC Solutions"
-    const cleaned = htmlTitle.split(/[|\-–—:]/)[0].trim();
-    if (cleaned.length >= 3 && cleaned.length < 50) return cleaned;
-  }
-  // Fallback to domain capitalized
-  const parts = domain.split('.')[0].replace(/[-_]/g, ' ');
-  return parts.replace(/\b\w/g, (c) => c.toUpperCase());
+function getAiClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({
+    apiKey,
+  });
 }
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Sliding window rate limit check
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local-client';
+    const rateCheck = scanRateLimiter.check(clientIp);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: `Too many audit requests. Please wait  seconds.` },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfterSec || 30) } }
+      );
+    }
+
     const body = await req.json();
     const rawUrl = body.url;
     const customIndustry = body.industry || '';
@@ -50,8 +40,14 @@ export async function POST(req: NextRequest) {
     }
 
     const targetUrl = normalizeUrl(rawUrl);
-    const domain = extractDomainName(targetUrl);
 
+    // 2. SSRF Protection: verify destination is a public external hostname
+    const safety = isSafePublicUrl(targetUrl);
+    if (!safety.safe) {
+      return NextResponse.json({ error: safety.reason || 'Restricted network target.' }, { status: 400 });
+    }
+
+    const domain = extractDomainName(targetUrl);
     let html = '';
     let loadTimeMs = 850;
     let pageSizeKb = 120;
@@ -103,6 +99,7 @@ export async function POST(req: NextRequest) {
     let imagesWithoutAlt = 0;
     let totalScripts = 0;
     let totalStylesheets = 0;
+    let extractedEmail: string | undefined = undefined;
     const legacyLibraries: string[] = [];
 
     if (fetchSuccess && html) {
@@ -134,6 +131,12 @@ export async function POST(req: NextRequest) {
 
       totalScripts = (html.match(/<script\b/gi) || []).length;
       totalStylesheets = (html.match(/<link[^>]+rel=["']stylesheet["']/gi) || []).length;
+
+      // Extract real contact email from mailto: links if present
+      const mailtoMatch = html.match(/mailto:([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/i);
+      if (mailtoMatch) {
+        extractedEmail = mailtoMatch[1].toLowerCase();
+      }
 
       // Legacy cues
       if (/jquery[-.](1\.|2\.)/i.test(html)) legacyLibraries.push('Legacy jQuery v1/v2');
@@ -195,73 +198,76 @@ Perform a realistic, high-credibility assessment of this website. Provide:
 4. A concrete redesign suggestion explaining how modernizing the UI will increase leads, booking, or customer inquiries.
 5. Detected or inferred tech stack tags (e.g., "WordPress 4.9", "Legacy PHP", "Uncompressed Assets", etc.).`;
 
+    const ai = getAiClient();
     const modelCandidates = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
     let parsedAi: any = null;
 
-    for (const modelName of modelCandidates) {
-      try {
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('AI model timeout')), 4000)
-        );
+    if (ai) {
+      for (const modelName of modelCandidates) {
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('AI model timeout')), 15000)
+          );
 
-        const aiPromise = ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                industry: { type: Type.STRING },
-                scores: {
-                  type: Type.OBJECT,
-                  properties: {
-                    overall: { type: Type.INTEGER },
-                    design: { type: Type.INTEGER },
-                    speed: { type: Type.INTEGER },
-                    mobile: { type: Type.INTEGER },
-                    seo: { type: Type.INTEGER },
-                  },
-                  required: ['overall', 'design', 'speed', 'mobile', 'seo'],
-                },
-                issues: {
-                  type: Type.ARRAY,
-                  items: {
+          const aiPromise = ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  industry: { type: Type.STRING },
+                  scores: {
                     type: Type.OBJECT,
                     properties: {
-                      category: { type: Type.STRING, description: 'Must be one of: design, speed, mobile, seo' },
-                      severity: { type: Type.STRING, description: 'critical, warning, or info' },
-                      title: { type: Type.STRING },
-                      description: { type: Type.STRING },
-                      recommendation: { type: Type.STRING },
-                      impactEstimate: { type: Type.STRING },
+                      overall: { type: Type.INTEGER },
+                      design: { type: Type.INTEGER },
+                      speed: { type: Type.INTEGER },
+                      mobile: { type: Type.INTEGER },
+                      seo: { type: Type.INTEGER },
                     },
-                    required: ['category', 'severity', 'title', 'description', 'recommendation'],
+                    required: ['overall', 'design', 'speed', 'mobile', 'seo'],
                   },
+                  issues: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        category: { type: Type.STRING, description: 'Must be one of: design, speed, mobile, seo' },
+                        severity: { type: Type.STRING, description: 'critical, warning, or info' },
+                        title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        recommendation: { type: Type.STRING },
+                        impactEstimate: { type: Type.STRING },
+                      },
+                      required: ['category', 'severity', 'title', 'description', 'recommendation'],
+                    },
+                  },
+                  techStack: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING },
+                  },
+                  visualCritique: { type: Type.STRING },
+                  redesignSuggestion: { type: Type.STRING },
                 },
-                techStack: {
-                  type: Type.ARRAY,
-                  items: { type: Type.STRING },
-                },
-                visualCritique: { type: Type.STRING },
-                redesignSuggestion: { type: Type.STRING },
+                required: ['scores', 'issues', 'techStack', 'visualCritique', 'redesignSuggestion'],
               },
-              required: ['scores', 'issues', 'techStack', 'visualCritique', 'redesignSuggestion'],
             },
-          },
-        });
+          });
 
-        const aiResponse = await Promise.race([aiPromise, timeoutPromise]);
-        if (aiResponse && aiResponse.text) {
-          parsedAi = JSON.parse(aiResponse.text);
-          break;
+          const aiResponse = await Promise.race([aiPromise, timeoutPromise]);
+          if (aiResponse && aiResponse.text) {
+            parsedAi = JSON.parse(aiResponse.text);
+            break;
+          }
+        } catch (modelErr) {
+          console.warn(`Model ${modelName} encountered error:`, modelErr);
         }
-      } catch (modelErr) {
-        console.warn(`Model ${modelName} encountered error:`, modelErr);
       }
     }
 
-    // Telemetry-derived fallback if all AI models are temporarily under high demand
+    // Telemetry-derived fallback if AI client is missing or models are under high demand
     if (!parsedAi || !parsedAi.scores) {
       const calcSpeed = Math.max(15, Math.min(85, Math.round(100 - (loadTimeMs / 100))));
       const calcMobile = hasViewport ? 72 : 28;
@@ -352,8 +358,7 @@ Perform a realistic, high-credibility assessment of this website. Provide:
       impactEstimate: iss.impactEstimate || undefined,
     }));
 
-    const contactEmail = domain.includes('guthrie') ? 'mike@gk-bp.com' : `contact@${domain}`;
-    const location = domain.includes('guthrie') ? 'Pleasant View, TN' : undefined;
+    const contactEmail = extractedEmail || `contact@${domain}`;
 
     const auditReport: AuditReport = {
       id: `audit-${Date.now()}`,
@@ -362,7 +367,7 @@ Perform a realistic, high-credibility assessment of this website. Provide:
       companyName,
       industry: parsedAi.industry || customIndustry || 'Professional Services',
       contactEmail,
-      location,
+      location: undefined,
       analyzedAt: new Date().toISOString(),
       scores: {
         overall: parsedAi.scores?.overall ?? Math.round(((parsedAi.scores?.design ?? 50) + (parsedAi.scores?.speed ?? 50) + (parsedAi.scores?.mobile ?? 50) + (parsedAi.scores?.seo ?? 50)) / 4),

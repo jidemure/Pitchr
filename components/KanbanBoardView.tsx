@@ -27,6 +27,7 @@ interface KanbanBoardViewProps {
   onUpdateLeadStatus: (leadId: string, newStatus: LeadStatus) => void;
   onDeleteLead: (leadId: string) => void;
   onQuickSend: (lead: Lead, provider: EmailProvider) => void;
+  onOpenTeaser?: (lead: Lead) => void;
 }
 
 interface ColumnDef {
@@ -123,7 +124,8 @@ export const KanbanBoardView: React.FC<KanbanBoardViewProps> = ({
   onSelectLeadForEmail,
   onUpdateLeadStatus,
   onDeleteLead,
-  onQuickSend
+  onQuickSend,
+  onOpenTeaser
 }) => {
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<LeadStatus | null>(null);
@@ -266,7 +268,7 @@ export const KanbanBoardView: React.FC<KanbanBoardViewProps> = ({
                         onDragEnd={handleDragEnd}
                         className={`group relative bg-white rounded-xl border border-slate-200/90 p-3 shadow-2xs hover:shadow-md hover:border-slate-300 transition-all cursor-grab active:cursor-grabbing ${
                           isDragging
-                            ? 'opacity-30 scale-95 border-dashed border-emerald-500'
+                            ? 'opacity-30 scale-95 border-dashed border-orange-500'
                             : ''
                         }`}
                       >
@@ -421,6 +423,17 @@ export const KanbanBoardView: React.FC<KanbanBoardViewProps> = ({
                             >
                               <Mail className="h-3.5 w-3.5" />
                             </button>
+
+                            {onOpenTeaser && (
+                              <button
+                                type="button"
+                                onClick={() => onOpenTeaser(lead)}
+                                title="Share public audit teaser link"
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-orange-600 hover:bg-orange-50 transition-colors"
+                              >
+                                <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+                              </button>
+                            )}
 
                             {/* Stage Move Dropdown (for non-drag or mobile users) */}
                             <div className="relative">

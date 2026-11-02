@@ -32,6 +32,7 @@ interface AuditModalProps {
   onRetry?: (url: string) => void;
   onSaveToCrm?: (report: AuditReport) => void;
   onNavigateToCrm?: () => void;
+  onOpenTeaser?: (report: AuditReport) => void;
 }
 
 export const AuditModal: React.FC<AuditModalProps> = ({
@@ -45,6 +46,7 @@ export const AuditModal: React.FC<AuditModalProps> = ({
   onRetry,
   onSaveToCrm,
   onNavigateToCrm,
+  onOpenTeaser,
 }) => {
   const [activeTouchIndex, setActiveTouchIndex] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -59,6 +61,17 @@ export const AuditModal: React.FC<AuditModalProps> = ({
     'Checking page weight, uncompressed image assets & CSS...',
     'Synthesizing personalized 4-touch cold outreach proposal...',
   ];
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   useEffect(() => {
     if (!isScanning) return;

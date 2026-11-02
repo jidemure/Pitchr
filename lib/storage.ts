@@ -242,25 +242,25 @@ export async function syncLeadToSupabase(
 }
 
 export const DEFAULT_USER_PROFILE: UserProfile = {
-  name: 'Tariq Lanez',
-  email: 'tariqlanez77@gmail.com',
+  name: 'Alex Rivers',
+  email: 'alex@apexstudio.io',
   agencyName: 'Apex Digital Studio',
   role: 'Agency Founder',
-  avatarColor: 'from-emerald-500 to-teal-600',
-  senderName: 'Tariq',
+  avatarColor: 'from-orange-500 to-amber-600',
+  senderName: 'Alex',
   defaultOffer: 'Free 2-minute mobile wireframe walkthrough',
   preferredProvider: 'gmail',
-  gmailAccountEmail: 'julian.veloceai@gmail.com',
+  gmailAccountEmail: '',
   customSmtp: {
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
     auth: {
-      user: 'julian.veloceai@gmail.com',
+      user: '',
       pass: '',
     },
-    fromEmail: 'julian.veloceai@gmail.com',
-    fromName: 'Julian | Veloce AI',
+    fromEmail: '',
+    fromName: 'Alex | Apex Studio',
     configured: false,
   },
 };

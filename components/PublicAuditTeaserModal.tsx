@@ -5,7 +5,9 @@ import {
   X,
   Copy,
   Check,
-  ArrowRight
+  ArrowRight,
+  ExternalLink,
+  Sparkles
 } from 'lucide-react';
 import { AuditReport } from '@/lib/types';
 
@@ -20,13 +22,35 @@ export const PublicAuditTeaserModal: React.FC<PublicAuditTeaserModalProps> = ({
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   if (!report) return null;
 
-  const mockPublicUrl = `https://pitchr.app/audit/${report.companyName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  let serializedParam = '';
+  try {
+    if (typeof window !== 'undefined') {
+      serializedParam = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(report)))));
+    }
+  } catch (err) {
+    console.warn('Serialization error:', err);
+  }
+
+  const publicUrl = serializedParam
+    ? `${origin}/audit/${report.id}?data=${serializedParam}`
+    : `${origin}/audit/${report.id}`;
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(mockPublicUrl);
+      await navigator.clipboard.writeText(publicUrl);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     } catch (err) {
@@ -35,12 +59,12 @@ export const PublicAuditTeaserModal: React.FC<PublicAuditTeaserModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+    <div role="dialog" aria-modal="true" aria-label="Public Prospect Teaser Preview" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
       <div className="bg-white rounded-2xl border border-slate-200 max-w-2xl w-full max-h-[92vh] overflow-y-auto shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-6">
         {/* Modal Header */}
         <div className="flex items-start justify-between pb-3 sm:pb-4 border-b border-slate-100 gap-2">
           <div>
-            <span className="text-[11px] font-mono font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md">
+            <span className="text-[11px] font-mono font-medium text-orange-700 bg-orange-50 px-2 py-0.5 rounded-md">
               Prospect Teaser Preview
             </span>
             <h3 className="text-base sm:text-lg font-medium text-slate-900 font-heading mt-1 leading-snug">
@@ -58,16 +82,27 @@ export const PublicAuditTeaserModal: React.FC<PublicAuditTeaserModalProps> = ({
 
         {/* Link Copy Bar */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2 bg-slate-50 border border-slate-200 rounded-xl">
-          <span className="text-xs font-mono text-slate-600 truncate flex-1 px-1 py-1">
-            {mockPublicUrl}
+          <span className="text-xs font-mono text-slate-600 truncate flex-1 px-2 py-1">
+            {publicUrl}
           </span>
-          <button
-            onClick={handleCopyLink}
-            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-500 transition-colors shadow-xs shrink-0 min-h-[38px] sm:min-h-0"
-          >
-            {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            <span>{copiedLink ? 'Link Copied!' : 'Copy Link for Cold Email'}</span>
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              onClick={handleCopyLink}
+              className="inline-flex items-center justify-center gap-1.5 px-3 py-2 sm:py-1.5 text-xs font-semibold rounded-lg bg-orange-500 hover:bg-orange-600 text-white transition-colors shadow-xs shrink-0 min-h-[38px] sm:min-h-0"
+            >
+              {copiedLink ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              <span>{copiedLink ? 'Link Copied!' : 'Copy Link for Cold Email'}</span>
+            </button>
+            <a
+              href={publicUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-200/60 rounded-lg transition-colors shrink-0"
+              title="Open teaser in new tab"
+            >
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
         </div>
 
         {/* The Client-Facing Card Preview Box */}
@@ -89,7 +124,7 @@ export const PublicAuditTeaserModal: React.FC<PublicAuditTeaserModalProps> = ({
             </div>
           </div>
 
-          {/* Quick 4 Metrics Mini Bar: 2x2 on mobile, 4 columns on tablet */}
+          {/* Quick 4 Metrics Mini Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
             <div className="p-2 rounded-lg bg-white border border-slate-200">
               <span className="text-[10px] sm:text-[11px] text-slate-500 block">Design</span>
@@ -130,7 +165,7 @@ export const PublicAuditTeaserModal: React.FC<PublicAuditTeaserModalProps> = ({
                 <p className="text-slate-600 leading-normal text-[11px] sm:text-xs">
                   {issue.description}
                 </p>
-                <p className="text-emerald-700 font-medium pt-0.5 text-[11px] sm:text-xs">
+                <p className="text-orange-700 font-medium pt-0.5 text-[11px] sm:text-xs">
                   💡 Fix: {issue.recommendation}
                 </p>
               </div>
@@ -138,18 +173,18 @@ export const PublicAuditTeaserModal: React.FC<PublicAuditTeaserModalProps> = ({
           </div>
 
           {/* Client Action Callout */}
-          <div className="p-3.5 sm:p-4 rounded-xl bg-emerald-600 text-white text-center space-y-2 shadow-xs">
-            <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-emerald-100 block">
+          <div className="p-4 rounded-xl bg-[#191C21] text-white text-center space-y-2 shadow-xs">
+            <span className="text-[10px] sm:text-xs font-medium uppercase tracking-wider text-orange-400 block">
               Ready to recover lost mobile leads?
             </span>
             <h4 className="text-xs sm:text-sm font-bold font-heading">
               Request Your Free 2-Minute Wireframe Walkthrough
             </h4>
-            <p className="text-[11px] sm:text-xs text-emerald-50 max-w-md mx-auto">
+            <p className="text-[11px] sm:text-xs text-slate-300 max-w-md mx-auto">
               Our studio prepared a modern, high-speed mobile prototype tailored specifically for {report.companyName}.
             </p>
             <div className="pt-1">
-              <span className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white text-emerald-950 font-semibold text-xs rounded-lg shadow-xs w-full sm:w-auto">
+              <span className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold text-xs rounded-lg shadow-xs w-full sm:w-auto">
                 <span>Reply to Our Email to View Prototype</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </span>
@@ -161,7 +196,7 @@ export const PublicAuditTeaserModal: React.FC<PublicAuditTeaserModalProps> = ({
         <div className="flex justify-end pt-1">
           <button
             onClick={onClose}
-            className="w-full sm:w-auto px-4 py-2.5 sm:py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors min-h-[38px]"
+            className="w-full sm:w-auto px-4 py-2 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors min-h-[38px]"
           >
             Close Preview
           </button>

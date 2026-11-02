@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createRateLimiter } from '@/lib/auditHelpers';
+const outreachLimiter = createRateLimiter(60000, 25);
+
 import { GoogleGenAI, Type } from '@google/genai';
 import { AuditReport, EmailSequence, OutreachTone } from '@/lib/types';
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    },
-  },
-});
+function getAiClient(): GoogleGenAI | null {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+  return new GoogleGenAI({
+    apiKey,
+  });
+}
 
 interface ConversionBottleneck {
   flawId: 'viewport_broken' | 'slow_speed' | 'dated_design' | 'missing_cta' | 'broken_seo';
@@ -109,10 +111,19 @@ function analyzePrimaryConversionBottleneck(audit: AuditReport): ConversionBottl
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    // 1. Sliding window rate limit check
+    const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'local-client';
+    const rateCheck = outreachLimiter.check(clientIp);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        { error: 'Outreach generation limit reached. Please wait before generating more.' },
+        { status: 429, headers: { 'Retry-After': String(rateCheck.retryAfterSec || 30) } }
+      );
+    }
     const audit: AuditReport = body.audit;
     const tone: OutreachTone = body.tone || 'boutique_agency';
     const agencyName: string = body.agencyName || 'Apex Digital Studio';
-    const senderName: string = body.senderName || 'Tariq';
+    const senderName: string = body.senderName || 'Alex';
     const customOffer: string = body.customOffer || 'Free 2-minute mobile wireframe walkthrough';
 
     if (!audit || !audit.url) {
@@ -180,63 +191,66 @@ Generate a progressive 4-touch cold sequence:
 
 Include 2-3 short, compelling, lowercase subject lines for each touch.`;
 
+    const ai = getAiClient();
     const modelCandidates = ['gemini-flash-latest', 'gemini-3.1-flash-lite', 'gemini-3.8-flash'];
     let parsed: any = null;
 
-    for (const modelName of modelCandidates) {
-      try {
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Outreach AI model timeout')), 4000)
-        );
+    if (ai) {
+      for (const modelName of modelCandidates) {
+        try {
+          const timeoutPromise = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Outreach AI model timeout')), 15000)
+          );
 
-        const aiPromise = ai.models.generateContent({
-          model: modelName,
-          contents: prompt,
-          config: {
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                personalizationSummary: {
-                  type: Type.STRING,
-                  description: '1-2 sentences explaining why this specific email angle will hook this client.',
-                },
-                customRedesignPitch: {
-                  type: Type.STRING,
-                  description: 'The core redesign value proposition formulated for this client.',
-                },
-                touches: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      step: { type: Type.INTEGER },
-                      title: { type: Type.STRING },
-                      timing: { type: Type.STRING },
-                      subjectLines: {
-                        type: Type.ARRAY,
-                        items: { type: Type.STRING },
+          const aiPromise = ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: {
+              responseMimeType: 'application/json',
+              responseSchema: {
+                type: Type.OBJECT,
+                properties: {
+                  personalizationSummary: {
+                    type: Type.STRING,
+                    description: '1-2 sentences explaining why this specific email angle will hook this client.',
+                  },
+                  customRedesignPitch: {
+                    type: Type.STRING,
+                    description: 'The core redesign value proposition formulated for this client.',
+                  },
+                  touches: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        step: { type: Type.INTEGER },
+                        title: { type: Type.STRING },
+                        timing: { type: Type.STRING },
+                        subjectLines: {
+                          type: Type.ARRAY,
+                          items: { type: Type.STRING },
+                        },
+                        hook: { type: Type.STRING },
+                        body: { type: Type.STRING },
+                        cta: { type: Type.STRING },
                       },
-                      hook: { type: Type.STRING },
-                      body: { type: Type.STRING },
-                      cta: { type: Type.STRING },
+                      required: ['step', 'title', 'timing', 'subjectLines', 'hook', 'body', 'cta'],
                     },
-                    required: ['step', 'title', 'timing', 'subjectLines', 'hook', 'body', 'cta'],
                   },
                 },
+                required: ['personalizationSummary', 'customRedesignPitch', 'touches'],
               },
-              required: ['personalizationSummary', 'customRedesignPitch', 'touches'],
             },
-          },
-        });
+          });
 
-        const response = await Promise.race([aiPromise, timeoutPromise]);
-        if (response && response.text) {
-          parsed = JSON.parse(response.text);
-          break;
+          const response = await Promise.race([aiPromise, timeoutPromise]);
+          if (response && response.text) {
+            parsed = JSON.parse(response.text);
+            break;
+          }
+        } catch (mErr) {
+          console.warn(`Outreach model ${modelName} error, trying fallback...`, mErr);
         }
-      } catch (mErr) {
-        console.warn(`Outreach model ${modelName} error, trying fallback...`, mErr);
       }
     }
 

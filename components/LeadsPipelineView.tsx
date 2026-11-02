@@ -33,6 +33,7 @@ interface LeadsPipelineViewProps {
   onDeleteLead: (leadId: string) => void;
   onExportCSV: () => void;
   onSyncSupabase?: () => void;
+  onOpenTeaser?: (lead: Lead) => void;
 }
 
 export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
@@ -42,6 +43,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
   onUpdateLeadStatus,
   onDeleteLead,
   onExportCSV,
+  onOpenTeaser,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -295,6 +297,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
               onUpdateLeadStatus={onUpdateLeadStatus}
               onDeleteLead={onDeleteLead}
               onQuickSend={handleQuickSend}
+              onOpenTeaser={onOpenTeaser}
             />
           </div>
         ) : (
@@ -343,7 +346,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                     <select
                       value={lead.status}
                       onChange={(e) => onUpdateLeadStatus(lead.id, e.target.value as LeadStatus)}
-                      className="text-xs font-mono py-1.5 px-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 w-full min-h-[36px]"
+                      className="text-xs font-mono py-1.5 px-2 rounded-lg bg-slate-50 border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500 w-full min-h-[36px]"
                     >
                       <option value="audited">Audited</option>
                       <option value="drafted">Draft Ready</option>
@@ -357,7 +360,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                     <button
                       onClick={() => onSelectLeadForAudit(lead)}
                       title="View scorecard"
-                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                      className="p-2 rounded-lg border border-slate-200 text-slate-600 hover:text-orange-700 hover:bg-orange-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
                     >
                       <Eye className="h-4 w-4" />
                     </button>
@@ -369,6 +372,16 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                     >
                       <Mail className="h-4 w-4" />
                     </button>
+
+                    {onOpenTeaser && (
+                      <button
+                        onClick={() => onOpenTeaser(lead)}
+                        title="Share Public Teaser Link"
+                        className="p-2 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 min-h-[36px] min-w-[36px] flex items-center justify-center"
+                      >
+                        <Sparkles className="h-4 w-4 text-orange-500" />
+                      </button>
+                    )}
 
                     <button
                       onClick={() => onDeleteLead(lead.id)}
@@ -406,7 +419,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                           }}
                           className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono transition-all border ${
                             industryFilter !== 'all'
-                              ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold shadow-2xs'
+                              ? 'bg-orange-100 text-orange-800 border-orange-300 font-semibold shadow-2xs'
                               : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800 hover:bg-slate-100'
                           }`}
                           title="Filter by industry"
@@ -427,7 +440,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                                     setIndustryFilter('all');
                                     setIsIndustryDropdownOpen(false);
                                   }}
-                                  className="text-emerald-700 hover:text-emerald-900 text-[10px] font-medium"
+                                  className="text-orange-700 hover:text-orange-900 text-[10px] font-medium"
                                 >
                                   Reset
                                 </button>
@@ -440,11 +453,11 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                                 setIsIndustryDropdownOpen(false);
                               }}
                               className={`w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50 transition-colors ${
-                                industryFilter === 'all' ? 'bg-emerald-50 text-emerald-900 font-semibold' : ''
+                                industryFilter === 'all' ? 'bg-orange-50 text-orange-900 font-semibold' : ''
                               }`}
                             >
                               <span>All Industries</span>
-                              {industryFilter === 'all' && <Check className="h-3 w-3 text-emerald-600" />}
+                              {industryFilter === 'all' && <Check className="h-3 w-3 text-orange-600" />}
                             </button>
                             {uniqueIndustries.map((ind) => (
                               <button
@@ -455,11 +468,11 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                                   setIsIndustryDropdownOpen(false);
                                 }}
                                 className={`w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50 transition-colors ${
-                                  industryFilter === ind ? 'bg-emerald-50 text-emerald-900 font-semibold' : ''
+                                  industryFilter === ind ? 'bg-orange-50 text-orange-900 font-semibold' : ''
                                 }`}
                               >
                                 <span className="truncate max-w-[130px]">{ind}</span>
-                                {industryFilter === ind && <Check className="h-3 w-3 text-emerald-600" />}
+                                {industryFilter === ind && <Check className="h-3 w-3 text-orange-600" />}
                               </button>
                             ))}
                           </div>
@@ -499,7 +512,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                         }}
                         className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono transition-all border ${
                           statusFilter !== 'all'
-                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300 font-semibold shadow-2xs'
+                            ? 'bg-orange-100 text-orange-800 border-orange-300 font-semibold shadow-2xs'
                             : 'bg-white text-slate-500 border-slate-200 hover:text-slate-800 hover:bg-slate-100'
                         }`}
                         title="Filter leads by current status (e.g. drafted, contacted, replied)"
@@ -520,7 +533,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                                   setStatusFilter('all');
                                   setIsStatusDropdownOpen(false);
                                 }}
-                                className="text-emerald-700 hover:text-emerald-900 text-[10px] font-medium"
+                                className="text-orange-700 hover:text-orange-900 text-[10px] font-medium"
                               >
                                 Reset
                               </button>
@@ -535,7 +548,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                                 setIsStatusDropdownOpen(false);
                               }}
                               className={`w-full flex items-center justify-between px-3 py-1.5 text-left hover:bg-slate-50 transition-colors ${
-                                statusFilter === opt.value ? 'bg-emerald-50 text-emerald-900 font-semibold' : ''
+                                statusFilter === opt.value ? 'bg-orange-50 text-orange-900 font-semibold' : ''
                               }`}
                             >
                               <div className="flex items-center gap-2">
@@ -547,7 +560,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                                   {opt.count}
                                 </span>
                                 {statusFilter === opt.value && (
-                                  <Check className="h-3 w-3 text-emerald-600" />
+                                  <Check className="h-3 w-3 text-orange-600" />
                                 )}
                               </div>
                             </button>
@@ -653,7 +666,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                         <select
                           value={lead.status}
                           onChange={(e) => onUpdateLeadStatus(lead.id, e.target.value as LeadStatus)}
-                          className="text-xs font-mono py-1 px-2 rounded-md bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          className="text-xs font-mono py-1 px-2 rounded-md bg-white border border-slate-200 focus:outline-none focus:ring-1 focus:ring-orange-500"
                         >
                           <option value="audited">Audited</option>
                           <option value="drafted">Draft Ready</option>
@@ -744,7 +757,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                                   onClick={() => handleQuickSend(lead, 'custom_smtp')}
                                   className="w-full px-3 py-2 text-xs flex items-center gap-2 hover:bg-emerald-50 text-slate-700 hover:text-emerald-700 transition-colors border-t border-slate-100"
                                 >
-                                  <Mail className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                                  <Mail className="h-3.5 w-3.5 text-orange-600 shrink-0" />
                                   <span>Custom Mail</span>
                                 </button>
                               </div>
@@ -754,7 +767,7 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                           <button
                             onClick={() => onSelectLeadForAudit(lead)}
                             title="View detailed scorecard"
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 transition-colors"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-orange-700 hover:bg-orange-50 transition-colors"
                           >
                             <Eye className="h-3.5 w-3.5" />
                           </button>
@@ -766,6 +779,16 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
                           >
                             <Mail className="h-3.5 w-3.5" />
                           </button>
+
+                          {onOpenTeaser && (
+                            <button
+                              onClick={() => onOpenTeaser(lead)}
+                              title="Share Public Teaser Link"
+                              className="p-1.5 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors"
+                            >
+                              <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+                            </button>
+                          )}
 
                           <button
                             onClick={() => onDeleteLead(lead.id)}

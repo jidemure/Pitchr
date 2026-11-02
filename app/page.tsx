@@ -446,6 +446,11 @@ export default function HomePage() {
               onDeleteLead={handleDeleteLead}
               onExportCSV={handleExportAllLeadsCSV}
               onSyncSupabase={() => setIsSupabaseModalOpen(true)}
+              onOpenTeaser={(lead) => {
+                if (lead.auditId && audits[lead.auditId]) {
+                  setTeaserReport(audits[lead.auditId]);
+                }
+              }}
             />
           )}
 
@@ -541,6 +546,7 @@ export default function HomePage() {
           setIsInWorkspace(true);
           setActiveTab('crm');
         }}
+        onOpenTeaser={(rep) => setTeaserReport(rep)}
       />
 
       {/* Shareable Client Teaser Modal */}
