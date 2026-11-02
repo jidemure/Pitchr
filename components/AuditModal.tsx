@@ -713,7 +713,7 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <p className="text-slate-400 italic">No email body generated.</p>
                   )}
 
-                  {currentTouch?.cta && !emailBody.includes(currentTouch.cta) && (
+                  {currentTouch?.cta && !emailBody.includes(currentTouch.cta) && !emailBody.trim().endsWith('?') && (
                     <p className="font-semibold text-slate-900 pt-1">
                       {currentTouch.cta}
                     </p>
@@ -731,9 +731,11 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        const fullBodyToSend = currentTouch?.cta && !emailBody.includes(currentTouch.cta)
-                          ? `${emailBody}\n\n${currentTouch.cta}`
-                          : emailBody;
+                        const bodyText = emailBody.trim();
+                        const ctaText = currentTouch?.cta?.trim() || '';
+                        const fullBodyToSend = ctaText && !bodyText.includes(ctaText) && !bodyText.endsWith('?')
+                          ? `${bodyText}\n\n${ctaText}`
+                          : bodyText;
                         triggerDirectProviderLaunch('gmail', {
                           to: report?.contactEmail || `contact@${cleanDomain}`,
                           subject: subjectLine,
@@ -751,9 +753,11 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        const fullBodyToSend = currentTouch?.cta && !emailBody.includes(currentTouch.cta)
-                          ? `${emailBody}\n\n${currentTouch.cta}`
-                          : emailBody;
+                        const bodyText = emailBody.trim();
+                        const ctaText = currentTouch?.cta?.trim() || '';
+                        const fullBodyToSend = ctaText && !bodyText.includes(ctaText) && !bodyText.endsWith('?')
+                          ? `${bodyText}\n\n${ctaText}`
+                          : bodyText;
                         triggerDirectProviderLaunch('outlook', {
                           to: report?.contactEmail || `contact@${cleanDomain}`,
                           subject: subjectLine,
@@ -771,9 +775,11 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        const fullBodyToSend = currentTouch?.cta && !emailBody.includes(currentTouch.cta)
-                          ? `${emailBody}\n\n${currentTouch.cta}`
-                          : emailBody;
+                        const bodyText = emailBody.trim();
+                        const ctaText = currentTouch?.cta?.trim() || '';
+                        const fullBodyToSend = ctaText && !bodyText.includes(ctaText) && !bodyText.endsWith('?')
+                          ? `${bodyText}\n\n${ctaText}`
+                          : bodyText;
                         triggerDirectProviderLaunch('yahoo', {
                           to: report?.contactEmail || `contact@${cleanDomain}`,
                           subject: subjectLine,
@@ -791,9 +797,11 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                     <button
                       type="button"
                       onClick={() => {
-                        const fullBodyToSend = currentTouch?.cta && !emailBody.includes(currentTouch.cta)
-                          ? `${emailBody}\n\n${currentTouch.cta}`
-                          : emailBody;
+                        const bodyText = emailBody.trim();
+                        const ctaText = currentTouch?.cta?.trim() || '';
+                        const fullBodyToSend = ctaText && !bodyText.includes(ctaText) && !bodyText.endsWith('?')
+                          ? `${bodyText}\n\n${ctaText}`
+                          : bodyText;
                         triggerDirectProviderLaunch('mailto', {
                           to: report?.contactEmail || `contact@${cleanDomain}`,
                           subject: subjectLine,

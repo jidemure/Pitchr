@@ -128,8 +128,11 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
 
   const getFullBodyText = () => {
     if (!currentTouch) return '';
-    const hasCta = currentTouch.body.includes(currentTouch.cta);
-    const bodyWithCta = hasCta ? currentTouch.body : `${currentTouch.body}\n\n${currentTouch.cta}`;
+    const bodyText = currentTouch.body.trim();
+    const ctaText = currentTouch.cta?.trim() || '';
+    const endsWithQuestion = bodyText.endsWith('?');
+    const hasCta = (ctaText && bodyText.includes(ctaText)) || endsWithQuestion;
+    const bodyWithCta = hasCta ? bodyText : `${bodyText}\n\n${ctaText}`;
     return `${bodyWithCta}\n\nBest,\n${senderName}\n${agencyName}`;
   };
 
@@ -700,7 +703,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
                 </div>
 
                 {/* Callout Offer CTA */}
-                {!currentTouch.body.includes(currentTouch.cta) && (
+                {!currentTouch.body.includes(currentTouch.cta) && !currentTouch.body.trim().endsWith('?') && (
                   <div className="p-3.5 rounded-xl bg-orange-50/80 border border-orange-200/80 text-xs sm:text-sm font-medium text-orange-950 flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-orange-600 shrink-0" />
                     <span>{currentTouch.cta}</span>

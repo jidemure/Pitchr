@@ -128,7 +128,11 @@ export const LeadsPipelineView: React.FC<LeadsPipelineViewProps> = ({
     const cleanDomain = lead.url.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/.*$/, '');
     const recipient = lead.contactEmail || `contact@${cleanDomain}`;
     const subject = touch?.subjectLines?.[0] || `${cleanDomain} website polish & redesign proposal`;
-    const body = touch ? `${touch.body}\n\n${touch.cta}` : `Hi,\n\nI reviewed ${cleanDomain} and found several mobile conversion opportunities.`;
+    const bodyText = touch ? touch.body.trim() : `Hi,\n\nI reviewed ${cleanDomain} and found several mobile conversion opportunities.`;
+    const ctaText = touch?.cta?.trim() || '';
+    const body = touch
+      ? (bodyText.endsWith('?') || (ctaText && bodyText.includes(ctaText)) ? bodyText : `${bodyText}\n\n${ctaText}`)
+      : bodyText;
 
     triggerDirectProviderLaunch(provider, {
       to: recipient,

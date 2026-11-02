@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useSyncExternalStore } from 'react';
+import React, { useState, useMemo, useSyncExternalStore, useRef, useEffect } from 'react';
 import {
   BarChart3,
   TrendingUp,
@@ -19,7 +19,8 @@ import {
   ArrowRight,
   RotateCcw,
   Zap,
-  Info
+  Info,
+  MoreVertical
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -72,6 +73,18 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
   const [toneFilter, setToneFilter] = useState<string>('all');
   const [selectedCampaignForLog, setSelectedCampaignForLog] = useState<CampaignItem | null>(null);
   const [logToast, setLogToast] = useState<string | null>(null);
+  const [activeMenuCampaignId, setActiveMenuCampaignId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuCampaignId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const showToast = (msg: string) => {
     setLogToast(msg);
@@ -371,7 +384,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
             <BarChart3 className="h-4 w-4 text-orange-600" />
             <span>Outreach Analytics Engine</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 font-heading">
+          <h1 className="text-xl sm:text-2xl font-medium tracking-tight text-slate-900 font-heading">
             Campaign Performance
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1 max-w-xl">
@@ -415,7 +428,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-slate-900 font-heading">
+            <span className="text-2xl sm:text-3xl font-semibold font-mono text-slate-900">
               {aggregateMetrics.totalSent}
             </span>
             <span className="text-xs text-slate-400 font-sans">
@@ -438,7 +451,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
             </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-bold text-sky-950 font-heading">
+            <span className="text-2xl sm:text-3xl font-semibold font-mono text-slate-900">
               {aggregateMetrics.overallOpenRate}%
             </span>
             <span className="text-xs text-slate-500 font-sans">
@@ -504,7 +517,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
         <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
             <div>
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 font-heading">
+              <h2 className="text-sm sm:text-base font-medium tracking-tight text-slate-900 font-heading">
                 Campaign Outreach Comparison
               </h2>
               <p className="text-xs text-slate-500">
@@ -581,7 +594,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
         <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4 flex flex-col justify-between">
           <div>
             <div className="border-b border-slate-100 pb-3">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900 font-heading">
+              <h2 className="text-sm sm:text-base font-medium tracking-tight text-slate-900 font-heading">
                 Outreach Conversion Funnel
               </h2>
               <p className="text-xs text-slate-500">
@@ -658,7 +671,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
       <div className="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6 shadow-2xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 pb-3">
           <div>
-            <h2 className="text-sm sm:text-base font-bold text-slate-900 font-heading">
+            <h2 className="text-sm sm:text-base font-medium tracking-tight text-slate-900 font-heading">
               Touch-by-Touch Drop-off & Response Timing
             </h2>
             <p className="text-xs text-slate-500">
@@ -737,7 +750,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
                   <th className="py-3.5 px-3 font-semibold text-center">Opened</th>
                   <th className="py-3.5 px-3 font-semibold text-center">Responded</th>
                   <th className="py-3.5 px-3 font-semibold text-center">Reply Rate</th>
-                  <th className="py-3.5 px-4 font-semibold text-right">Quick Action</th>
+                  <th className="py-3.5 px-4 font-semibold text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-sans">
@@ -793,28 +806,75 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
                       </span>
                     </td>
 
-                    {/* Action Buttons */}
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* Quick Event Log Button */}
+                    {/* Action Column strictly using Vertical ... menu */}
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div
+                        className="relative inline-block text-left"
+                        ref={activeMenuCampaignId === c.id ? menuRef : undefined}
+                      >
                         <button
                           type="button"
-                          onClick={() => setSelectedCampaignForLog(c)}
-                          className="px-2 py-1 text-[11px] font-medium rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors shadow-2xs"
-                          title="Record send, open, or response"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveMenuCampaignId(activeMenuCampaignId === c.id ? null : c.id);
+                          }}
+                          title="Actions"
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
+                          aria-label={`Actions for ${c.companyName}`}
                         >
-                          + Log Event
+                          <MoreVertical className="h-4 w-4" />
                         </button>
 
-                        {/* Open in Email Studio */}
-                        <button
-                          type="button"
-                          onClick={() => onNavigateToOutreach(c.id)}
-                          className="p-1 rounded-lg text-emerald-700 hover:bg-emerald-50 transition-colors"
-                          title="Open sequence in Email Studio"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </button>
+                        {activeMenuCampaignId === c.id && (
+                          <div className="absolute right-0 top-full mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-40 text-left animate-in fade-in zoom-in-95 duration-100 font-sans">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedCampaignForLog(c);
+                                setActiveMenuCampaignId(null);
+                              }}
+                              className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                            >
+                              <PlusCircle className="h-3.5 w-3.5 text-orange-600" />
+                              <span>Log Outreach Event</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onNavigateToOutreach(c.id);
+                                setActiveMenuCampaignId(null);
+                              }}
+                              className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                            >
+                              <Mail className="h-3.5 w-3.5 text-slate-400" />
+                              <span>Open in Email Studio</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onNavigateToCrm();
+                                setActiveMenuCampaignId(null);
+                              }}
+                              className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors cursor-pointer"
+                            >
+                              <Layers className="h-3.5 w-3.5 text-slate-400" />
+                              <span>View in CRM Pipeline</span>
+                            </button>
+
+                            <a
+                              href={c.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              onClick={() => setActiveMenuCampaignId(null)}
+                              className="w-full px-3 py-2 text-xs flex items-center gap-2.5 text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-colors border-t border-slate-100"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 text-slate-400" />
+                              <span>Visit Website</span>
+                            </a>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -861,7 +921,7 @@ export const PerformanceView: React.FC<PerformanceViewProps> = ({
           <div className="bg-white rounded-2xl max-w-md w-full border border-slate-200 p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 font-heading">
+                <h3 className="text-sm font-semibold text-slate-900 font-heading">
                   Log Outreach Activity
                 </h3>
                 <p className="text-xs text-slate-500">
