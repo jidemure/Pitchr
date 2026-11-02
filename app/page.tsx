@@ -7,6 +7,7 @@ import { AuditModal } from '@/components/AuditModal';
 import { DashboardView } from '@/components/DashboardView';
 import { LeadsPipelineView } from '@/components/LeadsPipelineView';
 import { EmailStudioView } from '@/components/EmailStudioView';
+import { PerformanceView } from '@/components/PerformanceView';
 import { PublicAuditTeaserModal } from '@/components/PublicAuditTeaserModal';
 import { SupabaseModal } from '@/components/SupabaseModal';
 import { ProfileSettingsModal } from '@/components/ProfileSettingsModal';
@@ -33,7 +34,7 @@ import { AlertCircle, CheckCircle2, Menu, Sparkles, Layers, ArrowRight, Globe } 
 
 export default function HomePage() {
   const [isInWorkspace, setIsInWorkspace] = useState(false);
-  const [activeTab, setActiveTab] = useState<'scanner' | 'dashboard' | 'crm' | 'outreach' | 'database'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'dashboard' | 'crm' | 'outreach' | 'performance' | 'database'>('scanner');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -480,6 +481,31 @@ export default function HomePage() {
               isGenerating={isGeneratingEmail}
               onOpenSettings={() => setIsProfileModalOpen(true)}
               onLeadStatusUpdated={() => setLeads(getStoredLeads())}
+            />
+          )}
+
+          {/* View 5: Performance Analytics View (Workspace Mode) */}
+          {isInWorkspace && activeTab === 'performance' && (
+            <PerformanceView
+              sequences={sequences}
+              leads={leads}
+              audits={audits}
+              onNavigateToOutreach={(sequenceId) => {
+                if (sequences[sequenceId]) {
+                  setCurrentSequence(sequences[sequenceId]);
+                }
+                const linkedLead = leads.find((l) => l.campaignId === sequenceId);
+                if (linkedLead?.auditId && audits[linkedLead.auditId]) {
+                  setCurrentAudit(audits[linkedLead.auditId]);
+                }
+                setActiveTab('outreach');
+              }}
+              onNavigateToScanner={() => {
+                setIsInWorkspace(false);
+                setActiveTab('scanner');
+              }}
+              onNavigateToCrm={() => setActiveTab('crm')}
+              onSequencesUpdated={(updated) => setSequences(updated)}
             />
           )}
         </main>

@@ -11,13 +11,14 @@ import {
   PlusCircle,
   Menu,
   X,
-  Settings
+  Settings,
+  BarChart3
 } from 'lucide-react';
 import { UserProfile } from '@/lib/types';
 
 interface SidebarProps {
-  activeTab: 'scanner' | 'dashboard' | 'crm' | 'outreach' | 'database';
-  setActiveTab: (tab: 'scanner' | 'dashboard' | 'crm' | 'outreach' | 'database') => void;
+  activeTab: 'scanner' | 'dashboard' | 'crm' | 'outreach' | 'performance' | 'database';
+  setActiveTab: (tab: 'scanner' | 'dashboard' | 'crm' | 'outreach' | 'performance' | 'database') => void;
   leadsCount: number;
   isSupabaseConnected: boolean;
   onNewScanClick: () => void;
@@ -57,6 +58,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'outreach' as const,
       label: 'Email Studio',
       icon: Mail,
+      badge: null,
+    },
+    {
+      id: 'performance' as const,
+      label: 'Performance',
+      icon: BarChart3,
       badge: null,
     },
     {

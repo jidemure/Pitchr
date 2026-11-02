@@ -70,6 +70,25 @@ export interface EmailTouch {
   cta: string;
 }
 
+export interface TouchPerformance {
+  step: number;
+  title: string;
+  sent: number;
+  opened: number;
+  responded: number;
+  bounced?: number;
+}
+
+export interface CampaignPerformanceStats {
+  sent: number;
+  opened: number;
+  responded: number;
+  bounced?: number;
+  converted?: number;
+  touchBreakdown?: TouchPerformance[];
+  lastDispatchedAt?: string;
+}
+
 export interface EmailSequence {
   id: string;
   leadId: string;
@@ -80,6 +99,7 @@ export interface EmailSequence {
   touches: EmailTouch[];
   personalizationSummary: string;
   customRedesignPitch: string;
+  stats?: CampaignPerformanceStats;
 }
 
 export type EmailProvider = 'gmail' | 'outlook' | 'yahoo' | 'custom_smtp' | 'mailto';

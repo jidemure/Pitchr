@@ -25,7 +25,7 @@ import {
   sendViaCustomSmtp,
   triggerDirectProviderLaunch
 } from '@/lib/emailDispatcher';
-import { getStoredUserProfile, updateLeadFollowUp } from '@/lib/storage';
+import { getStoredUserProfile, updateLeadFollowUp, recordSequenceEvent } from '@/lib/storage';
 
 interface EmailStudioViewProps {
   sequence: EmailSequence | null;
@@ -193,6 +193,9 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
 
     if (sequence?.leadId) {
       updateLeadFollowUp(sequence.leadId, step, provider);
+      if (sequence?.id) {
+        recordSequenceEvent(sequence.id, 'sent', step);
+      }
       if (onLeadStatusUpdated) onLeadStatusUpdated();
     }
   };

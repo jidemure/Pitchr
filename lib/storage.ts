@@ -328,3 +328,84 @@ export function updateLeadFollowUp(
   saveStoredLeads(updated);
   return updated;
 }
+
+export function recordSequenceEvent(
+  sequenceId: string,
+  event: 'sent' | 'opened' | 'responded' | 'bounced' | 'converted',
+  touchStep: number = 1
+): Record<string, EmailSequence> {
+  const currentSequences = getStoredSequences();
+  const seq = currentSequences[sequenceId];
+  if (!seq) return currentSequences;
+
+  const prevStats = seq.stats || {
+    sent: 0,
+    opened: 0,
+    responded: 0,
+    bounced: 0,
+    converted: 0,
+    touchBreakdown: [
+      { step: 1, title: 'Initial Hook', sent: 0, opened: 0, responded: 0 },
+      { step: 2, title: 'Redesign Blueprint', sent: 0, opened: 0, responded: 0 },
+      { step: 3, title: 'Case Study ROI', sent: 0, opened: 0, responded: 0 },
+      { step: 4, title: 'Breakup', sent: 0, opened: 0, responded: 0 },
+    ],
+  };
+
+  const currentBreakdown = prevStats.touchBreakdown && prevStats.touchBreakdown.length === 4
+    ? prevStats.touchBreakdown
+    : [
+        { step: 1, title: 'Initial Hook', sent: 0, opened: 0, responded: 0 },
+        { step: 2, title: 'Redesign Blueprint', sent: 0, opened: 0, responded: 0 },
+        { step: 3, title: 'Case Study ROI', sent: 0, opened: 0, responded: 0 },
+        { step: 4, title: 'Breakup', sent: 0, opened: 0, responded: 0 },
+      ];
+
+  const updatedTouchBreakdown = currentBreakdown.map((t) => {
+    if (t.step === touchStep) {
+      return {
+        ...t,
+        [event]: (t[event as 'sent' | 'opened' | 'responded'] || 0) + 1,
+      };
+    }
+    return t;
+  });
+
+  const updatedStats = {
+    ...prevStats,
+    [event]: (prevStats[event] || 0) + 1,
+    touchBreakdown: updatedTouchBreakdown,
+    lastDispatchedAt: event === 'sent' ? new Date().toISOString() : prevStats.lastDispatchedAt,
+  };
+
+  const updatedSequences = {
+    ...currentSequences,
+    [sequenceId]: {
+      ...seq,
+      stats: updatedStats,
+    },
+  };
+
+  saveStoredSequences(updatedSequences);
+  return updatedSequences;
+}
+
+export function updateSequenceStats(
+  sequenceId: string,
+  newStats: import('./types').CampaignPerformanceStats
+): Record<string, EmailSequence> {
+  const currentSequences = getStoredSequences();
+  const seq = currentSequences[sequenceId];
+  if (!seq) return currentSequences;
+
+  const updatedSequences = {
+    ...currentSequences,
+    [sequenceId]: {
+      ...seq,
+      stats: newStats,
+    },
+  };
+
+  saveStoredSequences(updatedSequences);
+  return updatedSequences;
+}
