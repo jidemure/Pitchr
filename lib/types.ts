@@ -140,5 +140,6 @@ export interface UserProfile {
   senderName: string;
   defaultOffer: string;
   preferredProvider?: EmailProvider;
+  gmailAccountEmail?: string;
   customSmtp?: CustomSmtpConfig;
 }

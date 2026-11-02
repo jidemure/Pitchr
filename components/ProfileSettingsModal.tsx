@@ -57,6 +57,9 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [preferredProvider, setPreferredProvider] = useState<import('@/lib/types').EmailProvider>(
     profile.preferredProvider || 'gmail'
   );
+  const [gmailAccountEmail, setGmailAccountEmail] = useState<string>(
+    profile.gmailAccountEmail || profile.email || 'julian.veloceai@gmail.com'
+  );
 
   // Custom SMTP states
   const [smtpHost, setSmtpHost] = useState(profile.customSmtp?.host || '');
@@ -70,6 +73,17 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const [isSaved, setIsSaved] = useState(false);
+
+  const handleFillGmailSmtpPreset = (targetEmail = 'julian.veloceai@gmail.com') => {
+    setSmtpHost('smtp.gmail.com');
+    setSmtpPort(465);
+    setSmtpSecure(true);
+    setSmtpUser(targetEmail);
+    setSmtpFromEmail(targetEmail);
+    setSmtpFromName(senderName || name || 'Julian | Veloce AI');
+    setGmailAccountEmail(targetEmail);
+    setPreferredProvider('custom_smtp');
+  };
 
   if (!isOpen) return null;
 
@@ -136,6 +150,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
       defaultOffer,
       avatarColor,
       preferredProvider,
+      gmailAccountEmail,
       customSmtp: {
         host: smtpHost,
         port: Number(smtpPort),
@@ -412,26 +427,89 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 })}
               </div>
 
+              {/* Dedicated Gmail Configuration Section */}
+              <div className="p-4 rounded-xl border border-red-200/90 bg-red-50/40 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-red-700 font-semibold text-xs font-heading">
+                    <svg className="h-4 w-4 fill-current" viewBox="0 0 24 24">
+                      <path d={EMAIL_PROVIDERS_META.gmail.iconSvg} />
+                    </svg>
+                    <span>Gmail Web Account Configuration</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-red-700 bg-red-100/80 px-2 py-0.5 rounded-full border border-red-200">
+                    authuser routing
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600 leading-normal">
+                  When you click <strong>Gmail</strong>, Pitchr opens Google Mail prefilled with the outreach pitch and passes <code className="text-red-700 bg-red-100/70 px-1 py-0.5 rounded font-mono">authuser={gmailAccountEmail || 'julian.veloceai@gmail.com'}</code> so it automatically targets this specific Google account even with multiple accounts logged in.
+                </p>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-mono text-slate-500 uppercase tracking-wider block">
+                    Target Gmail Address
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="email"
+                      value={gmailAccountEmail}
+                      onChange={(e) => setGmailAccountEmail(e.target.value)}
+                      placeholder="e.g. julian.veloceai@gmail.com"
+                      className="flex-1 px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-red-500 font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setGmailAccountEmail('julian.veloceai@gmail.com');
+                        setEmail('julian.veloceai@gmail.com');
+                        setAgencyName('Veloce AI');
+                        setSenderName('Julian');
+                      }}
+                      className="px-2.5 py-1.5 text-[11px] font-medium rounded-lg bg-white border border-red-200 text-red-700 hover:bg-red-50 transition-colors shrink-0 shadow-2xs"
+                    >
+                      Fill julian.veloceai@gmail.com
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               {/* Custom SMTP Configuration Drawer / Panel */}
               <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3.5">
-                <div className="flex items-center justify-between border-b border-slate-200/80 pb-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-200/80 pb-2.5 gap-2">
                   <div className="flex items-center gap-2">
                     <Server className="h-4 w-4 text-emerald-700" />
                     <div>
                       <span className="text-xs font-semibold text-slate-900 block font-heading">
-                        Custom SMTP Credentials
+                        Direct SMTP Sending (In-App Dispatch)
                       </span>
                       <span className="text-[10px] text-slate-500">
-                        Compatible with SendGrid, Mailgun, AWS SES, Zoho, PrivateEmail, or your own server
+                        Supports Gmail SMTP (smtp.gmail.com), SendGrid, Mailgun, AWS SES, or custom server
                       </span>
                     </div>
                   </div>
-                  {Boolean(smtpHost && smtpUser) && (
-                    <span className="inline-flex items-center gap-1 text-[10px] font-mono font-medium text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full border border-emerald-200">
-                      <CheckCircle2 className="h-2.5 w-2.5" />
-                      Configured
-                    </span>
-                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => handleFillGmailSmtpPreset('julian.veloceai@gmail.com')}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-50 border border-red-200 text-red-700 hover:bg-red-100 text-[11px] font-semibold transition-colors shrink-0"
+                  >
+                    <span>⚡ Fill Gmail SMTP (julian.veloceai)</span>
+                  </button>
+                </div>
+
+                {/* Helpful Guide for Gmail App Passwords */}
+                <div className="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/70 text-[11px] text-amber-900 leading-normal space-y-1">
+                  <div className="font-semibold flex items-center gap-1 text-amber-950">
+                    <span>💡 Sending directly through Gmail SMTP (smtp.gmail.com):</span>
+                  </div>
+                  <p>
+                    Google requires an <strong>App Password</strong> rather than your standard account password:
+                  </p>
+                  <ol className="list-decimal list-inside space-y-0.5 text-[10px] pl-1 text-amber-800">
+                    <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="underline font-medium text-amber-950 hover:text-black">Google Account Security → App Passwords</a>.</li>
+                    <li>Generate a 16-letter password (select app: <em>Mail</em> or name it <em>Pitchr</em>).</li>
+                    <li>Paste the 16 characters into the <strong>SMTP Password</strong> field below and click <strong>Test Connection</strong>.</li>
+                  </ol>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">

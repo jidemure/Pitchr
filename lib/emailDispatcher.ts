@@ -7,6 +7,7 @@ export interface EmailDispatchPayload {
   touchStep?: number;
   leadId?: string;
   senderName?: string;
+  senderEmail?: string;
   agencyName?: string;
 }
 
@@ -89,7 +90,10 @@ export function buildGmailUrl(payload: EmailDispatchPayload): string {
     su: payload.subject || '',
     body: payload.body || '',
   });
-  return `https://mail.google.com/mail/?${params.toString()}`;
+  if (payload.senderEmail) {
+    params.set('authuser', payload.senderEmail);
+  }
+  return `https://mail.google.com/mail/u/?${params.toString()}`;
 }
 
 export function buildOutlookUrl(payload: EmailDispatchPayload): string {

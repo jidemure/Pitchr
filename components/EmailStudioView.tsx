@@ -141,6 +141,7 @@ export const EmailStudioView: React.FC<EmailStudioViewProps> = ({
       touchStep: currentTouch.step,
       leadId: sequence.leadId,
       senderName,
+      senderEmail: userProfile.gmailAccountEmail || userProfile.email || 'julian.veloceai@gmail.com',
       agencyName,
     };
 

@@ -250,16 +250,17 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
   senderName: 'Tariq',
   defaultOffer: 'Free 2-minute mobile wireframe walkthrough',
   preferredProvider: 'gmail',
+  gmailAccountEmail: 'julian.veloceai@gmail.com',
   customSmtp: {
-    host: '',
-    port: 587,
-    secure: false,
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
     auth: {
-      user: '',
+      user: 'julian.veloceai@gmail.com',
       pass: '',
     },
-    fromEmail: '',
-    fromName: 'Tariq Lanez',
+    fromEmail: 'julian.veloceai@gmail.com',
+    fromName: 'Julian | Veloce AI',
     configured: false,
   },
 };
