@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai';
 import { AuditReport, RawMetrics, AuditIssue } from '@/lib/types';
+import { fetchGooglePageSpeed, GooglePageSpeedMetrics } from '@/lib/pagespeed';
 import {
   normalizeUrl,
   extractDomainName,
@@ -40,6 +41,7 @@ export async function POST(req: NextRequest) {
     const customIndustry = body.industry || '';
     const userProspectName = body.prospectName ? String(body.prospectName).trim() : '';
     const userProspectEmail = body.prospectEmail ? String(body.prospectEmail).trim().toLowerCase() : '';
+    const userPagespeedApiKey = body.pagespeedApiKey ? String(body.pagespeedApiKey).trim() : undefined;
 
     if (!rawUrl || typeof rawUrl !== 'string') {
       return NextResponse.json({ error: 'Please provide a valid website URL.' }, { status: 400 });
@@ -62,7 +64,9 @@ export async function POST(req: NextRequest) {
     // Check if target is a sample mock domain or real URL
     const isSampleDomain = domain.endsWith('.sample') || domain.endsWith('.test') || domain.endsWith('.local') || domain === 'localhost';
 
+    let pageSpeedPromise: Promise<GooglePageSpeedMetrics | null> | null = null;
     if (!isSampleDomain) {
+      pageSpeedPromise = fetchGooglePageSpeed(targetUrl, userPagespeedApiKey, 18000);
       const startTime = Date.now();
       try {
         const controller = new AbortController();
@@ -261,44 +265,73 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Baseline truth scoring calculation based on empirical web metrics
-    let calcSpeed = 50;
-    if (loadTimeMs < 2000) calcSpeed = 92;
-    else if (loadTimeMs < 3000) calcSpeed = 80;
-    else if (loadTimeMs < 4000) calcSpeed = 66;
-    else if (loadTimeMs < 5000) calcSpeed = 46;
-    else if (loadTimeMs < 6500) calcSpeed = 34;
-    else calcSpeed = 22;
-    if (totalScripts > 20) calcSpeed = Math.max(15, calcSpeed - 8);
-
-    let calcSeo = 0;
-    if (hasTitle) calcSeo += (titleText.length >= 15 && titleText.length <= 70) ? 25 : 15;
-    if (hasMetaDesc) calcSeo += (metaDescText.length >= 50 && metaDescText.length <= 165) ? 25 : 15;
-    if (hasSchema) calcSeo += 15;
-    if (hasOpenGraph) calcSeo += 15;
-    if (h1Count === 1) calcSeo += 10;
-    else if (h1Count > 1) calcSeo += 5;
-    if (imagesWithoutAlt === 0 && totalImages > 0) calcSeo += 10;
-    else if (totalImages > 0 && (imagesWithoutAlt / totalImages) < 0.25) calcSeo += 6;
-    calcSeo = Math.max(20, Math.min(95, calcSeo));
-
-    let calcMobile = 0;
-    if (hasViewport) {
-      calcMobile += 45;
-      if (/@media|flex|grid|container/i.test(html)) calcMobile += 25;
-      if (!/<table[^>]*width=["'](?:9\d\d|1\d\d\d)/i.test(html)) calcMobile += 20;
-      calcMobile += 10;
-    } else {
-      calcMobile = 25;
+    // Await Google PageSpeed Insights mobile evaluation if initiated
+    let pageSpeedMetrics: GooglePageSpeedMetrics | null = null;
+    if (pageSpeedPromise) {
+      try {
+        pageSpeedMetrics = await pageSpeedPromise;
+      } catch (pageSpeedErr) {
+        console.warn(`[PageSpeed API] Failed for ${targetUrl}:`, pageSpeedErr);
+      }
     }
-    calcMobile = Math.max(15, Math.min(95, calcMobile));
 
+    // Baseline truth scoring calculation based on Google Lighthouse and empirical web metrics
+    let calcSpeed = 50;
+    let calcSeo = 60;
+    let calcMobile = 60;
     let calcDesign = 60;
-    if (h1Count >= 1 && h2Count >= 2) calcDesign += 15;
-    if (/(testimonial|review|rating|client|award|badge)/i.test(html)) calcDesign += 15;
-    if (legacyLibraries.some(l => l.includes('Flash') || l.includes('Pre-Responsive'))) calcDesign -= 30;
-    if (legacyLibraries.some(l => l.includes('jQuery v1'))) calcDesign -= 15;
-    calcDesign = Math.max(25, Math.min(92, calcDesign));
+
+    if (pageSpeedMetrics) {
+      calcSpeed = pageSpeedMetrics.performanceScore;
+      calcSeo = pageSpeedMetrics.seoScore;
+      calcMobile = pageSpeedMetrics.accessibilityScore;
+      loadTimeMs = pageSpeedMetrics.lcpMs;
+      pageSizeKb = Math.round(pageSpeedMetrics.totalBytes / 1024);
+
+      calcDesign = 66;
+      if (h1Count >= 1 && h2Count >= 2) calcDesign += 12;
+      if (/(testimonial|review|rating|client|award|badge)/i.test(html)) calcDesign += 12;
+      if (legacyLibraries.some(l => l.includes('Flash') || l.includes('Pre-Responsive'))) calcDesign -= 30;
+      if (legacyLibraries.some(l => l.includes('jQuery v1'))) calcDesign -= 15;
+      calcDesign = Math.max(25, Math.min(92, calcDesign));
+    } else {
+      if (loadTimeMs < 2000) calcSpeed = 92;
+      else if (loadTimeMs < 3000) calcSpeed = 80;
+      else if (loadTimeMs < 4000) calcSpeed = 66;
+      else if (loadTimeMs < 5000) calcSpeed = 46;
+      else if (loadTimeMs < 6500) calcSpeed = 34;
+      else calcSpeed = 22;
+      if (totalScripts > 20) calcSpeed = Math.max(15, calcSpeed - 8);
+
+      calcSeo = 0;
+      if (hasTitle) calcSeo += (titleText.length >= 15 && titleText.length <= 70) ? 25 : 15;
+      if (hasMetaDesc) calcSeo += (metaDescText.length >= 50 && metaDescText.length <= 165) ? 25 : 15;
+      if (hasSchema) calcSeo += 15;
+      if (hasOpenGraph) calcSeo += 15;
+      if (h1Count === 1) calcSeo += 10;
+      else if (h1Count > 1) calcSeo += 5;
+      if (imagesWithoutAlt === 0 && totalImages > 0) calcSeo += 10;
+      else if (totalImages > 0 && (imagesWithoutAlt / totalImages) < 0.25) calcSeo += 6;
+      calcSeo = Math.max(20, Math.min(95, calcSeo));
+
+      calcMobile = 0;
+      if (hasViewport) {
+        calcMobile += 45;
+        if (/@media|flex|grid|container/i.test(html)) calcMobile += 25;
+        if (!/<table[^>]*width=["'](?:9\d\d|1\d\d\d)/i.test(html)) calcMobile += 20;
+        calcMobile += 10;
+      } else {
+        calcMobile = 25;
+      }
+      calcMobile = Math.max(15, Math.min(95, calcMobile));
+
+      calcDesign = 60;
+      if (h1Count >= 1 && h2Count >= 2) calcDesign += 15;
+      if (/(testimonial|review|rating|client|award|badge)/i.test(html)) calcDesign += 15;
+      if (legacyLibraries.some(l => l.includes('Flash') || l.includes('Pre-Responsive'))) calcDesign -= 30;
+      if (legacyLibraries.some(l => l.includes('jQuery v1'))) calcDesign -= 15;
+      calcDesign = Math.max(25, Math.min(92, calcDesign));
+    }
 
     const calcOverall = Math.round((calcSpeed + calcMobile + calcSeo + calcDesign) / 4);
 
@@ -315,8 +348,18 @@ Candidate Emails Discovered on Site: ${discoveredEmails.all.join(', ') || 'None 
 Candidate Prospect / Leadership Cues: ${discoveredProspect.name ? `${discoveredProspect.name} (${discoveredProspect.title || 'Decision Maker'})` : 'None detected in raw HTML'}
 User-Specified Prospect (if provided): ${userProspectName ? `${userProspectName} (${userProspectEmail})` : 'None'}
 
-Technical Telemetry & Benchmarks:
-- Simulated Mobile Load Time: ${(loadTimeMs / 1000).toFixed(1)}s (Lighthouse simulated 4G mobile)
+${pageSpeedMetrics ? `VERIFIED GOOGLE LIGHTHOUSE MOBILE TELEMETRY (Live Audit):
+- Performance Score: ${pageSpeedMetrics.performanceScore}/100
+- Largest Contentful Paint (LCP): ${pageSpeedMetrics.lcpDisplay} (${pageSpeedMetrics.lcpMs}ms)
+- First Contentful Paint (FCP): ${pageSpeedMetrics.fcpDisplay}
+- Total Blocking Time (TBT): ${pageSpeedMetrics.tbtDisplay}
+- Speed Index: ${pageSpeedMetrics.speedIndexDisplay}
+- Total Page Payload: ${pageSpeedMetrics.totalByteWeightDisplay}
+- Google SEO Score: ${pageSpeedMetrics.seoScore}/100
+- Google Accessibility Score: ${pageSpeedMetrics.accessibilityScore}/100
+- Top Opportunities: ${pageSpeedMetrics.opportunities.map(o => o.title).slice(0, 4).join(', ') || 'None'}
+` : ''}Technical Telemetry & Benchmarks:
+- ${pageSpeedMetrics ? 'Verified Mobile LCP' : 'Simulated Mobile Load Time'}: ${(loadTimeMs / 1000).toFixed(1)}s (Lighthouse simulated 4G mobile)
 - Estimated Page Weight: ${pageSizeKb}KB
 - Viewport Configured for Mobile: ${hasViewport ? 'Yes (configured)' : 'NO (CRITICAL: Broken on mobile devices)'}
 - HTML Title: ${hasTitle ? `"${titleText}"` : 'MISSING'}
@@ -489,6 +532,30 @@ CRITICAL SCORING & AUDIT INSTRUCTIONS:
       totalScripts,
       totalStylesheets,
       legacyLibrariesDetected: legacyLibraries,
+      coreWebVitals: pageSpeedMetrics ? {
+        lcpSeconds: Number((pageSpeedMetrics.lcpMs / 1000).toFixed(1)),
+        lcpDisplay: pageSpeedMetrics.lcpDisplay,
+        fcpSeconds: Number((pageSpeedMetrics.fcpMs / 1000).toFixed(1)),
+        fcpDisplay: pageSpeedMetrics.fcpDisplay,
+        tbtMs: pageSpeedMetrics.tbtMs,
+        tbtDisplay: pageSpeedMetrics.tbtDisplay,
+        cls: pageSpeedMetrics.cls,
+        clsDisplay: pageSpeedMetrics.clsDisplay,
+        speedIndexDisplay: pageSpeedMetrics.speedIndexDisplay,
+        totalByteWeightDisplay: pageSpeedMetrics.totalByteWeightDisplay,
+        lighthousePerformance: pageSpeedMetrics.performanceScore,
+        lighthouseSeo: pageSpeedMetrics.seoScore,
+        lighthouseAccessibility: pageSpeedMetrics.accessibilityScore,
+        dataSource: 'google_pagespeed_api',
+      } : {
+        lcpSeconds: Number((loadTimeMs / 1000).toFixed(1)),
+        lcpDisplay: `${(loadTimeMs / 1000).toFixed(1)}s`,
+        totalByteWeightDisplay: `${pageSizeKb} KB`,
+        lighthousePerformance: calcSpeed,
+        lighthouseSeo: calcSeo,
+        lighthouseAccessibility: calcMobile,
+        dataSource: 'simulated_telemetry',
+      },
     };
 
     // Format issues with unique IDs
@@ -566,6 +633,7 @@ CRITICAL SCORING & AUDIT INSTRUCTIONS:
       prospectTitle: finalProspectTitle,
       emailSource,
       location: undefined,
+      screenshotUrl: pageSpeedMetrics?.screenshotDataUri || undefined,
       analyzedAt: new Date().toISOString(),
       scores: {
         overall: parsedAi.scores?.overall ?? Math.round(((parsedAi.scores?.design ?? 50) + (parsedAi.scores?.speed ?? 50) + (parsedAi.scores?.mobile ?? 50) + (parsedAi.scores?.seo ?? 50)) / 4),

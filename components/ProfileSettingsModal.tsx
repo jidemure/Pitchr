@@ -84,6 +84,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
   const [isTestingSmtp, setIsTestingSmtp] = useState(false);
   const [smtpTestResult, setSmtpTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
+  const [googlePageSpeedApiKey, setGooglePageSpeedApiKey] = useState(profile.googlePageSpeedApiKey || '');
   const [isSaved, setIsSaved] = useState(false);
 
   const handleFillGmailSmtpPreset = (targetEmail = 'outreach@apexstudio.io') => {
@@ -176,6 +177,7 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
         fromName: smtpFromName || senderName,
         configured: Boolean(smtpHost && smtpUser && smtpPass),
       },
+      googlePageSpeedApiKey: googlePageSpeedApiKey.trim() || undefined,
     };
     saveStoredUserProfile(updated);
     onUpdateProfile(updated);
@@ -727,6 +729,35 @@ export const ProfileSettingsModal: React.FC<ProfileSettingsModalProps> = ({
                 <span className="text-[11px] text-slate-400">
                   Appears below your name in cold emails and follow-ups.
                 </span>
+              </div>
+
+              {/* Google PageSpeed Insights API Key */}
+              <div className="p-3.5 rounded-xl border border-slate-200/90 bg-slate-50/60 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="h-7 w-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0">
+                      ⚡
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-slate-900 block font-heading">
+                        Google PageSpeed Insights API
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        Powers real mobile Lighthouse Core Web Vitals & screenshots (25k free/day)
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                    Active
+                  </span>
+                </div>
+                <input
+                  type="password"
+                  value={googlePageSpeedApiKey}
+                  onChange={(e) => setGooglePageSpeedApiKey(e.target.value)}
+                  placeholder="AIzaSy... (leave blank to use server environment key)"
+                  className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                />
               </div>
 
               {/* Database Setting Card */}

@@ -49,6 +49,22 @@ export interface RawMetrics {
   totalScripts: number;
   totalStylesheets: number;
   legacyLibrariesDetected: string[];
+  coreWebVitals?: {
+    lcpSeconds?: number;
+    lcpDisplay?: string;
+    fcpSeconds?: number;
+    fcpDisplay?: string;
+    tbtMs?: number;
+    tbtDisplay?: string;
+    cls?: number;
+    clsDisplay?: string;
+    speedIndexDisplay?: string;
+    totalByteWeightDisplay?: string;
+    lighthousePerformance?: number;
+    lighthouseSeo?: number;
+    lighthouseAccessibility?: number;
+    dataSource: 'google_pagespeed_api' | 'simulated_telemetry';
+  };
 }
 
 export interface AuditReport {
@@ -63,6 +79,7 @@ export interface AuditReport {
   prospectTitle?: string;
   emailSource?: 'user' | 'website_prospect' | 'website_general' | 'domain_fallback';
   location?: string;
+  screenshotUrl?: string;
   scores: AuditScoreBreakdown;
   issues: AuditIssue[];
   techStack: string[];
@@ -178,4 +195,5 @@ export interface UserProfile {
   preferredProvider?: EmailProvider;
   gmailAccountEmail?: string;
   customSmtp?: CustomSmtpConfig;
+  googlePageSpeedApiKey?: string;
 }

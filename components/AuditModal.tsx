@@ -64,10 +64,10 @@ export const AuditModal: React.FC<AuditModalProps> = ({
   // Progressive scanning simulation steps for the radar screen (Screenshot 02)
   const [scanningStepIndex, setScanningStepIndex] = useState(0);
   const scanningSteps = [
-    'Opening the site in a real browser...',
-    'Analyzing viewport meta tags & mobile responsiveness...',
-    'Critiquing typography, visual hierarchy & design era with Gemini 3.8 Flash...',
-    'Checking page weight, uncompressed image assets & CSS...',
+    'Gathering Google Lighthouse mobile telemetry & Core Web Vitals...',
+    'Analyzing viewport meta tags, touch targets & mobile responsiveness...',
+    'Inspecting technical SEO, structured Schema.org JSON-LD & meta tags...',
+    'Critiquing visual hierarchy, CTA placement & conversion gaps with Gemini...',
     'Synthesizing personalized 4-touch cold outreach proposal...',
   ];
 
@@ -205,9 +205,16 @@ export const AuditModal: React.FC<AuditModalProps> = ({
           {/* Left Column (Scores & Lead Info) */}
           <div className="md:col-span-4 p-4 sm:p-5 border-b md:border-b-0 md:border-r border-slate-100 bg-[#fbfcfd] flex flex-col justify-between space-y-4">
             <div className="space-y-3">
-              <span className="text-[11px] font-mono uppercase tracking-wider font-semibold text-slate-500 block">
-                SITE SCORES
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-mono uppercase tracking-wider font-semibold text-slate-500 block">
+                  SITE SCORES
+                </span>
+                {report?.rawMetrics.coreWebVitals?.dataSource === 'google_pagespeed_api' && (
+                  <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 inline-flex items-center gap-1 font-medium">
+                    ⚡ Lighthouse Verified
+                  </span>
+                )}
+              </div>
 
               {/* State A: Loading Placeholder Cards (Screenshot 02) */}
               {isScanning && (
@@ -318,6 +325,11 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                         <p className="text-slate-700">
                           Title: {report.rawMetrics.hasTitle ? '✓ Configured' : '✕ Missing'} | Schema:{' '}
                           {report.rawMetrics.hasSchema ? '✓ Present' : '✕ Missing'}
+                          {report.rawMetrics.coreWebVitals?.lighthouseSeo !== undefined && (
+                            <span className="ml-1.5 text-[10px] text-emerald-700 font-mono">
+                              (Lighthouse: {report.rawMetrics.coreWebVitals.lighthouseSeo}/100)
+                            </span>
+                          )}
                         </p>
                         {getIssuesForCategory('seo').map((iss) => (
                           <div key={iss.id} className="text-slate-500 pl-2 border-l-2 border-emerald-300">
@@ -407,10 +419,20 @@ export const AuditModal: React.FC<AuditModalProps> = ({
 
                     {expandedCategory === 'speed' && (
                       <div className="mt-2.5 pt-2 border-t border-slate-100 text-[11px] text-slate-600 space-y-1.5 animate-fade-in">
-                        <p className="text-slate-700">
-                          Estimated Load: {(report.rawMetrics.loadTimeMs / 1000).toFixed(1)}s (
-                          {report.rawMetrics.pageSizeKb} KB)
-                        </p>
+                        <div className="flex items-center justify-between text-slate-800 font-medium">
+                          <span>
+                            {report.rawMetrics.coreWebVitals?.dataSource === 'google_pagespeed_api' ? 'Mobile LCP:' : 'Estimated Load:'}{' '}
+                            {report.rawMetrics.coreWebVitals?.lcpDisplay || `${(report.rawMetrics.loadTimeMs / 1000).toFixed(1)}s`}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500">
+                            {report.rawMetrics.coreWebVitals?.totalByteWeightDisplay || `${report.rawMetrics.pageSizeKb} KB`}
+                          </span>
+                        </div>
+                        {report.rawMetrics.coreWebVitals?.tbtDisplay && (
+                          <p className="text-[10px] text-slate-500">
+                            Main Thread Block: <strong className="text-slate-700">{report.rawMetrics.coreWebVitals.tbtDisplay}</strong> | CLS: <strong className="text-slate-700">{report.rawMetrics.coreWebVitals.clsDisplay || '0.00'}</strong>
+                          </p>
+                        )}
                         {getIssuesForCategory('speed').map((iss) => (
                           <div key={iss.id} className="text-slate-500 pl-2 border-l-2 border-rose-300">
                             • {iss.title}
@@ -422,6 +444,25 @@ export const AuditModal: React.FC<AuditModalProps> = ({
                 </div>
               )}
             </div>
+
+              {/* Mobile Viewport Snapshot if available */}
+              {!isScanning && report?.screenshotUrl && (
+                <div className="p-2.5 rounded-xl border border-slate-200/80 bg-white shadow-2xs space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-semibold text-slate-400 block">
+                      MOBILE VIEWPORT SNAPSHOT
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">375×812</span>
+                  </div>
+                  <div className="w-full h-32 rounded-lg overflow-hidden border border-slate-100 bg-slate-50 relative">
+                    <img
+                      src={report.screenshotUrl}
+                      alt={`${report.companyName} Mobile View`}
+                      className="w-full h-full object-cover object-top hover:object-contain transition-all duration-300"
+                    />
+                  </div>
+                </div>
+              )}
 
             {/* Bottom Lead Info Card with Prospect-First Status & Editing */}
             <div className="pt-3 border-t border-slate-100">

@@ -202,3 +202,17 @@ describe('Website Contact & Prospect Extraction', () => {
     assert.ok(url && url.includes('contact'));
   });
 });
+
+describe('Google PageSpeed Insights Engine', () => {
+  test('returns null when no API key is provided and environment is unconfigured', async () => {
+    const { fetchGooglePageSpeed } = await import('../lib/pagespeed.ts');
+    const original = process.env.GOOGLE_PAGESPEED_API_KEY;
+    delete process.env.GOOGLE_PAGESPEED_API_KEY;
+    try {
+      const result = await fetchGooglePageSpeed('https://example.com', '');
+      assert.strictEqual(result, null);
+    } finally {
+      if (original) process.env.GOOGLE_PAGESPEED_API_KEY = original;
+    }
+  });
+});

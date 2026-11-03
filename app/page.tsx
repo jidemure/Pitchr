@@ -128,6 +128,7 @@ export default function HomePage() {
           industry: targetIndustry,
           prospectName: targetProspectName,
           prospectEmail: targetProspectEmail,
+          pagespeedApiKey: userProfile.googlePageSpeedApiKey || undefined,
         }),
       }).then(async (scanRes) => {
         const scanData = await scanRes.json();
