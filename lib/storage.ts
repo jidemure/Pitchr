@@ -1,7 +1,7 @@
 'use client';
 
-import { AuditReport, EmailSequence, Lead, SupabaseConfig, UserProfile } from './types';
-import { getSupabaseClient } from './supabaseClient';
+import type { AuditReport, EmailSequence, Lead, SupabaseConfig, UserProfile } from './types.ts';
+import { getSupabaseClient } from './supabaseClient.ts';
 
 const LEADS_STORAGE_KEY = 'pitchr_leads_v2';
 const AUDITS_STORAGE_KEY = 'pitchr_audits_v2';
@@ -30,20 +30,36 @@ export const DEFAULT_SEED_AUDITS: Record<string, AuditReport> = {};
 export const DEFAULT_SEED_SEQUENCES: Record<string, EmailSequence> = {};
 
 export function getStoredSupabaseConfig(): SupabaseConfig {
+  const envUrl = (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_URL : '') || '';
+  const envKey = (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : '') || '';
+  const hasEnv = !!(envUrl && envKey);
+
   if (typeof window === 'undefined') {
-    return { url: '', anonKey: '', isConnected: false, syncEnabled: false };
+    return { url: envUrl, anonKey: envKey, isConnected: hasEnv, syncEnabled: hasEnv };
   }
   try {
     const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      const url = parsed.url || envUrl;
+      const anonKey = parsed.anonKey || envKey;
+      const isConnected = !!(url && anonKey);
+      return {
+        url,
+        anonKey,
+        isConnected,
+        syncEnabled: parsed.syncEnabled ?? isConnected,
+        lastSyncedAt: parsed.lastSyncedAt,
+      };
+    }
   } catch (err) {
     console.error('Error reading Supabase config:', err);
   }
   return {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    isConnected: !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY),
-    syncEnabled: false,
+    url: envUrl,
+    anonKey: envKey,
+    isConnected: hasEnv,
+    syncEnabled: hasEnv,
   };
 }
 
@@ -187,17 +203,23 @@ export async function syncLeadToSupabase(
   }
 
   try {
+    const leadPayload: Record<string, any> = {
+      url: lead.url,
+      company_name: lead.companyName,
+      industry: lead.industry,
+      contact_email: lead.contactEmail || null,
+      status: lead.status,
+      overall_score: lead.overallScore,
+      notes: lead.notes || null,
+      last_audited_at: lead.lastAuditedAt,
+    };
+    if (lead.prospectName) leadPayload.prospect_name = lead.prospectName;
+    if (lead.prospectTitle) leadPayload.prospect_title = lead.prospectTitle;
+    if (lead.emailSource) leadPayload.email_source = lead.emailSource;
+    if (lead.tags) leadPayload.tags = lead.tags;
+
     const { error: leadErr } = await supabase.from('leads').upsert(
-      {
-        url: lead.url,
-        company_name: lead.companyName,
-        industry: lead.industry,
-        contact_email: lead.contactEmail || null,
-        status: lead.status,
-        overall_score: lead.overallScore,
-        notes: lead.notes || null,
-        last_audited_at: lead.lastAuditedAt,
-      },
+      leadPayload,
       { onConflict: 'url' }
     );
     if (leadErr) {
@@ -217,7 +239,7 @@ export async function syncLeadToSupabase(
         redesign_suggestion: audit.redesignSuggestion,
         raw_metrics: audit.rawMetrics,
         analyzed_at: audit.analyzedAt,
-      });
+      }, { onConflict: 'url' });
       if (auditErr) console.warn('Supabase audit upsert warning:', auditErr);
     }
 
@@ -230,7 +252,7 @@ export async function syncLeadToSupabase(
         personalization_summary: sequence.personalizationSummary,
         custom_redesign_pitch: sequence.customRedesignPitch,
         created_at: sequence.createdAt,
-      });
+      }, { onConflict: 'url' });
       if (seqErr) console.warn('Supabase sequence upsert warning:', seqErr);
     }
 
@@ -238,6 +260,163 @@ export async function syncLeadToSupabase(
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Unknown sync error';
     return { success: false, error: msg };
+  }
+}
+
+export interface CloudSyncResult {
+  success: boolean;
+  leads: Lead[];
+  audits: Record<string, AuditReport>;
+  sequences: Record<string, EmailSequence>;
+  error?: string;
+}
+
+/**
+ * Fetches all leads, audits, and sequences from Supabase to hydrate state across devices.
+ */
+export async function fetchFromSupabase(): Promise<CloudSyncResult> {
+  const config = getStoredSupabaseConfig();
+  if (!config.url || !config.anonKey) {
+    return { success: false, leads: [], audits: {}, sequences: {}, error: 'Supabase credentials not configured.' };
+  }
+
+  const supabase = getSupabaseClient(config.url, config.anonKey);
+  if (!supabase) {
+    return { success: false, leads: [], audits: {}, sequences: {}, error: 'Could not initialize Supabase client.' };
+  }
+
+  try {
+    const { data: leadsData, error: leadsErr } = await supabase
+      .from('leads')
+      .select('*')
+      .order('last_audited_at', { ascending: false });
+
+    if (leadsErr) {
+      console.warn('Error fetching leads from Supabase:', leadsErr);
+      return { success: false, leads: [], audits: {}, sequences: {}, error: leadsErr.message };
+    }
+
+    const { data: auditsData, error: auditsErr } = await supabase
+      .from('audits')
+      .select('*');
+
+    if (auditsErr) {
+      console.warn('Error fetching audits from Supabase:', auditsErr);
+    }
+
+    const { data: seqData, error: seqErr } = await supabase
+      .from('email_sequences')
+      .select('*');
+
+    if (seqErr) {
+      console.warn('Error fetching sequences from Supabase:', seqErr);
+    }
+
+    const auditsMap: Record<string, AuditReport> = {};
+    if (auditsData) {
+      for (const a of auditsData) {
+        const auditId = a.id ? String(a.id) : `audit-${a.url}`;
+        auditsMap[auditId] = {
+          id: auditId,
+          leadId: a.lead_id ? String(a.lead_id) : `lead-${a.url}`,
+          url: a.url,
+          companyName: a.company_name,
+          industry: a.industry || 'Professional Services',
+          analyzedAt: a.analyzed_at,
+          scores: a.scores,
+          issues: Array.isArray(a.issues) ? a.issues : [],
+          techStack: Array.isArray(a.tech_stack) ? a.tech_stack : [],
+          visualCritique: a.visual_critique || '',
+          redesignSuggestion: a.redesign_suggestion || '',
+          rawMetrics: a.raw_metrics || {
+            loadTimeMs: 1500,
+            pageSizeKb: 500,
+            viewportConfigured: true,
+            hasTitle: true,
+            hasMetaDesc: true,
+            hasOpenGraph: true,
+            hasSchema: true,
+            headingCount: { h1: 1, h2: 2, h3: 1 },
+            totalImages: 5,
+            imagesWithoutAlt: 0,
+            totalScripts: 10,
+            totalStylesheets: 4,
+            legacyLibrariesDetected: [],
+          },
+        };
+      }
+    }
+
+    const seqMap: Record<string, EmailSequence> = {};
+    if (seqData) {
+      for (const s of seqData) {
+        const seqId = s.id ? String(s.id) : `seq-${s.url}`;
+        seqMap[seqId] = {
+          id: seqId,
+          leadId: s.lead_id ? String(s.lead_id) : `lead-${s.url}`,
+          url: s.url,
+          companyName: s.company_name,
+          tone: s.tone || 'specific_problem',
+          createdAt: s.created_at,
+          touches: Array.isArray(s.touches) ? s.touches : [],
+          personalizationSummary: s.personalization_summary || '',
+          customRedesignPitch: s.custom_redesign_pitch || '',
+        };
+      }
+    }
+
+    const parsedLeads: Lead[] = (leadsData || []).map((row) => {
+      const matchingAudit = Object.values(auditsMap).find((a) => a.url === row.url);
+      const matchingSeq = Object.values(seqMap).find((s) => s.url === row.url);
+
+      return {
+        id: row.id ? String(row.id) : `lead-${row.url}`,
+        url: row.url,
+        companyName: row.company_name,
+        industry: row.industry || 'General Business',
+        contactEmail: row.contact_email || undefined,
+        prospectName: row.prospect_name || undefined,
+        prospectTitle: row.prospect_title || undefined,
+        emailSource: row.email_source || undefined,
+        status: row.status || 'audited',
+        overallScore: row.overall_score || 50,
+        createdAt: row.created_at || row.last_audited_at,
+        lastAuditedAt: row.last_audited_at,
+        auditId: matchingAudit?.id,
+        campaignId: matchingSeq?.id,
+        notes: row.notes || undefined,
+        tags: Array.isArray(row.tags) ? row.tags : [],
+      };
+    });
+
+    return {
+      success: true,
+      leads: parsedLeads,
+      audits: auditsMap,
+      sequences: seqMap,
+    };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : 'Unknown sync error';
+    return { success: false, leads: [], audits: {}, sequences: {}, error: msg };
+  }
+}
+
+/**
+ * Removes a lead and its associated audits/sequences from Supabase cloud.
+ */
+export async function deleteLeadFromSupabase(url: string): Promise<void> {
+  const config = getStoredSupabaseConfig();
+  if (!config.isConnected && (!config.url || !config.anonKey)) return;
+
+  const supabase = getSupabaseClient(config.url, config.anonKey);
+  if (!supabase) return;
+
+  try {
+    await supabase.from('leads').delete().eq('url', url);
+    await supabase.from('audits').delete().eq('url', url);
+    await supabase.from('email_sequences').delete().eq('url', url);
+  } catch (err) {
+    console.warn('Failed to delete lead from Supabase:', err);
   }
 }
 

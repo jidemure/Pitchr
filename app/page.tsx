@@ -29,7 +29,9 @@ import {
   saveStoredUserProfile,
   clearAllStoredData,
   updateLeadTags,
-  syncLeadToSupabase
+  syncLeadToSupabase,
+  fetchFromSupabase,
+  deleteLeadFromSupabase
 } from '@/lib/storage';
 import { AlertCircle, CheckCircle2, Menu, Sparkles, Layers, ArrowRight, Globe } from 'lucide-react';
 
@@ -65,15 +67,17 @@ export default function HomePage() {
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
 
-  // Rehydrate custom saved state from localStorage after initial render
+  // Rehydrate custom saved state from localStorage, then automatically hydrate cloud records from Supabase
   useEffect(() => {
-    const timer = setTimeout(() => {
+    let isMounted = true;
+    const timer = setTimeout(async () => {
       const storedLeads = getStoredLeads();
       const storedAudits = getStoredAudits();
       const storedSequences = getStoredSequences();
       const storedConfig = getStoredSupabaseConfig();
       const storedProfile = getStoredUserProfile();
 
+      if (!isMounted) return;
       setLeads(storedLeads);
       setAudits(storedAudits);
       setSequences(storedSequences);
@@ -86,9 +90,46 @@ export default function HomePage() {
       if (storedLeads.length > 0 && storedLeads[0].campaignId && storedSequences[storedLeads[0].campaignId]) {
         setCurrentSequence(storedSequences[storedLeads[0].campaignId]);
       }
+
+      // Auto-fetch and merge cloud records across devices if Supabase is connected
+      if (storedConfig.isConnected) {
+        try {
+          const cloudRes = await fetchFromSupabase();
+          if (!isMounted) return;
+          if (cloudRes.success && cloudRes.leads.length > 0) {
+            setLeads((prev) => {
+              const urlMap = new Map<string, Lead>();
+              prev.forEach((l) => urlMap.set(l.url, l));
+              cloudRes.leads.forEach((l) => urlMap.set(l.url, l));
+              const merged = Array.from(urlMap.values()).sort(
+                (a, b) => new Date(b.lastAuditedAt).getTime() - new Date(a.lastAuditedAt).getTime()
+              );
+              saveStoredLeads(merged);
+              return merged;
+            });
+
+            setAudits((prev) => {
+              const merged = { ...prev, ...cloudRes.audits };
+              saveStoredAudits(merged);
+              return merged;
+            });
+
+            setSequences((prev) => {
+              const merged = { ...prev, ...cloudRes.sequences };
+              saveStoredSequences(merged);
+              return merged;
+            });
+          }
+        } catch (cloudErr) {
+          console.warn('Supabase cloud hydration warning:', cloudErr);
+        }
+      }
     }, 0);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, []);
 
   const showToast = (text: string, type: 'success' | 'error' = 'success') => {
@@ -225,8 +266,8 @@ export default function HomePage() {
       // Now set current audit to trigger the reveal of the scorecard
       setCurrentAudit(report);
 
-      // Auto sync to Supabase if enabled
-      if (supabaseConfig.syncEnabled) {
+      // Auto sync to Supabase if connected or enabled
+      if (supabaseConfig.isConnected || supabaseConfig.syncEnabled) {
         syncLeadToSupabase(updatedLead, report, generatedSeq || undefined);
       }
 
@@ -260,7 +301,7 @@ export default function HomePage() {
     showToast(`Lead status updated to ${newStatus}`);
 
     const updated = newLeads.find((l) => l.id === leadId);
-    if (updated && supabaseConfig.syncEnabled) {
+    if (updated && (supabaseConfig.isConnected || supabaseConfig.syncEnabled)) {
       const audit = updated.auditId ? audits[updated.auditId] : undefined;
       const seq = updated.campaignId ? sequences[updated.campaignId] : undefined;
       syncLeadToSupabase(updated, audit, seq);
@@ -268,15 +309,26 @@ export default function HomePage() {
   };
 
   const handleDeleteLead = (leadId: string) => {
+    const targetLead = leads.find((l) => l.id === leadId);
     const newLeads = leads.filter((l) => l.id !== leadId);
     setLeads(newLeads);
     saveStoredLeads(newLeads);
     showToast('Lead removed from CRM.');
+
+    if (targetLead && (supabaseConfig.isConnected || supabaseConfig.syncEnabled)) {
+      deleteLeadFromSupabase(targetLead.url);
+    }
   };
 
   const handleUpdateLeadTags = (leadId: string, tags: string[]) => {
     const updated = updateLeadTags(leadId, tags);
     setLeads(updated);
+    const target = updated.find((l) => l.id === leadId);
+    if (target && (supabaseConfig.isConnected || supabaseConfig.syncEnabled)) {
+      const audit = target.auditId ? audits[target.auditId] : undefined;
+      const seq = target.campaignId ? sequences[target.campaignId] : undefined;
+      syncLeadToSupabase(target, audit, seq);
+    }
   };
 
   const handleBulkUpdateLeadStatus = (leadIds: string[], newStatus: LeadStatus) => {
@@ -287,10 +339,15 @@ export default function HomePage() {
   };
 
   const handleBulkDeleteLeads = (leadIds: string[]) => {
+    const toDelete = leads.filter((l) => leadIds.includes(l.id));
     const newLeads = leads.filter((l) => !leadIds.includes(l.id));
     setLeads(newLeads);
     saveStoredLeads(newLeads);
     showToast(`Removed ${leadIds.length} lead${leadIds.length > 1 ? 's' : ''} from CRM.`);
+
+    if (supabaseConfig.isConnected || supabaseConfig.syncEnabled) {
+      toDelete.forEach((l) => deleteLeadFromSupabase(l.url));
+    }
   };
 
   const handleExportAllLeadsCSV = () => {

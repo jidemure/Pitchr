@@ -216,3 +216,19 @@ describe('Google PageSpeed Insights Engine', () => {
     }
   });
 });
+
+describe('Supabase Cloud Hydration & Storage Engine', () => {
+  test('fetchFromSupabase returns unconfigured state gracefully when credentials absent', async () => {
+    const { fetchFromSupabase } = await import('../lib/storage.ts');
+    const result = await fetchFromSupabase();
+    assert.strictEqual(result.success, false);
+    assert.strictEqual(result.leads.length, 0);
+  });
+
+  test('deleteLeadFromSupabase executes without throwing when unconfigured', async () => {
+    const { deleteLeadFromSupabase } = await import('../lib/storage.ts');
+    await assert.doesNotReject(async () => {
+      await deleteLeadFromSupabase('https://example.com');
+    });
+  });
+});
