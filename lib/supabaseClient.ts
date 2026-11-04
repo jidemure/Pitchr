@@ -60,6 +60,7 @@ create table if not exists public.audits (
   visual_critique text,
   redesign_suggestion text,
   raw_metrics jsonb,
+  screenshot_url text,
   analyzed_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -83,6 +84,7 @@ alter table public.leads add column if not exists prospect_name text;
 alter table public.leads add column if not exists prospect_title text;
 alter table public.leads add column if not exists email_source text;
 alter table public.leads add column if not exists tags jsonb default '[]'::jsonb;
+alter table public.audits add column if not exists screenshot_url text;
 
 -- Enable public read/write for demo simplicity (or configure custom RLS):
 alter table public.leads enable row level security;

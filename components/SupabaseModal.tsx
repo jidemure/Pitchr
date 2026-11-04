@@ -43,6 +43,16 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [copiedSchema, setCopiedSchema] = useState(false);
 
+  const projectRef = React.useMemo(() => {
+    try {
+      if (!config.url) return null;
+      const host = new URL(config.url).hostname;
+      return host.split('.')[0] || null;
+    } catch {
+      return null;
+    }
+  }, [config.url]);
+
   React.useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,10 +86,16 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
       const { error } = await client.from('leads').select('id').limit(1);
 
       if (error && error.code !== 'PGRST116') {
-        if (error.message.includes('relation "public.leads" does not exist')) {
+        const isTableMissing =
+          error.code === 'PGRST205' ||
+          error.message?.includes('relation "public.leads" does not exist') ||
+          error.message?.includes('Could not find the table') ||
+          error.message?.includes('schema cache');
+
+        if (isTableMissing) {
           setTestResult({
-            success: true,
-            message: 'Connected to Supabase! The "leads" table does not exist yet—run the SQL Schema script below in your Supabase SQL editor.',
+            success: false,
+            message: 'Connected to Supabase project, but database tables (leads, audits, email_sequences) do not exist yet! Click "Open SQL Editor" or "Copy SQL" below and run it in your Supabase SQL editor.',
           });
           const updated = { ...config, isConnected: true };
           setConfig(updated);
@@ -89,7 +105,7 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
           setTestResult({ success: false, message: `Connection failed: ${error.message}` });
         }
       } else {
-        setTestResult({ success: true, message: 'Successfully connected and verified Supabase database!' });
+        setTestResult({ success: true, message: 'Successfully connected and verified Supabase database tables!' });
         const updated = { ...config, isConnected: true };
         setConfig(updated);
         saveStoredSupabaseConfig(updated);
@@ -111,23 +127,33 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
     setSyncStatus('Syncing leads to Supabase...');
 
     let syncedCount = 0;
+    let failedCount = 0;
+    let lastError = '';
     for (const lead of leads) {
       const audit = lead.auditId ? audits[lead.auditId] : undefined;
       const seq = lead.campaignId ? sequences[lead.campaignId] : undefined;
       const res = await syncLeadToSupabase(lead, audit, seq);
-      if (res.success) syncedCount++;
+      if (res.success) {
+        syncedCount++;
+      } else {
+        failedCount++;
+        lastError = res.error || 'Sync error';
+      }
     }
 
-    const updated = {
-      ...config,
-      syncEnabled: true,
-      lastSyncedAt: new Date().toISOString(),
-    };
-    setConfig(updated);
-    saveStoredSupabaseConfig(updated);
-    onConfigUpdated(updated);
-
-    setSyncStatus(`Successfully synced ${syncedCount} of ${leads.length} leads to Supabase!`);
+    if (failedCount > 0 && syncedCount === 0) {
+      setSyncStatus(`Sync paused: ${lastError}. Make sure the SQL tables have been created in your Supabase project.`);
+    } else {
+      const updated = {
+        ...config,
+        syncEnabled: true,
+        lastSyncedAt: new Date().toISOString(),
+      };
+      setConfig(updated);
+      saveStoredSupabaseConfig(updated);
+      onConfigUpdated(updated);
+      setSyncStatus(`Successfully synced ${syncedCount} of ${leads.length} leads to Supabase!`);
+    }
     setIsSyncing(false);
   };
 
@@ -249,16 +275,28 @@ export const SupabaseModal: React.FC<SupabaseModalProps> = ({
                 Database Schema (DDL)
               </span>
               <p className="text-[11px] text-slate-500">
-                Run in Supabase SQL Editor:
+                Run once in Supabase SQL Editor:
               </p>
             </div>
-            <button
-              onClick={handleCopySchema}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors shadow-xs shrink-0 min-h-[32px]"
-            >
-              {copiedSchema ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
-              <span>{copiedSchema ? 'SQL Copied!' : 'Copy SQL'}</span>
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {projectRef && (
+                <a
+                  href={`https://supabase.com/dashboard/project/${projectRef}/sql/new`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-xs min-h-[32px]"
+                >
+                  <span>Open SQL Editor ↗</span>
+                </a>
+              )}
+              <button
+                onClick={handleCopySchema}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-md border border-slate-200 hover:bg-slate-50 text-slate-700 transition-colors shadow-xs min-h-[32px]"
+              >
+                {copiedSchema ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
+                <span>{copiedSchema ? 'SQL Copied!' : 'Copy SQL'}</span>
+              </button>
+            </div>
           </div>
 
           <pre className="p-2.5 sm:p-3 bg-slate-900 text-emerald-300 rounded-xl text-[10px] sm:text-[11px] font-mono overflow-x-auto max-h-40 border border-slate-800 leading-normal select-all">

@@ -66,6 +66,7 @@ export default function HomePage() {
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
+  const [supabaseTableMissing, setSupabaseTableMissing] = useState(false);
 
   // Rehydrate custom saved state from localStorage, then automatically hydrate cloud records from Supabase
   useEffect(() => {
@@ -96,29 +97,60 @@ export default function HomePage() {
         try {
           const cloudRes = await fetchFromSupabase();
           if (!isMounted) return;
-          if (cloudRes.success && cloudRes.leads.length > 0) {
-            setLeads((prev) => {
-              const urlMap = new Map<string, Lead>();
-              prev.forEach((l) => urlMap.set(l.url, l));
-              cloudRes.leads.forEach((l) => urlMap.set(l.url, l));
-              const merged = Array.from(urlMap.values()).sort(
-                (a, b) => new Date(b.lastAuditedAt).getTime() - new Date(a.lastAuditedAt).getTime()
-              );
-              saveStoredLeads(merged);
-              return merged;
+
+          if (cloudRes.error && (
+            cloudRes.error.includes('PGRST205') ||
+            cloudRes.error.includes('schema cache') ||
+            cloudRes.error.includes('does not exist')
+          )) {
+            setSupabaseTableMissing(true);
+            return;
+          }
+
+          if (cloudRes.success) {
+            setSupabaseTableMissing(false);
+            const cloudLeads = cloudRes.leads;
+            const cloudUrls = new Set(cloudLeads.map((l) => l.url));
+
+            // Bidirectional sync: upload any local leads that are missing in Supabase cloud
+            const missingInCloud = storedLeads.filter((l) => !cloudUrls.has(l.url));
+            if (missingInCloud.length > 0) {
+              for (const lead of missingInCloud) {
+                const audit = lead.auditId ? storedAudits[lead.auditId] : undefined;
+                const seq = lead.campaignId ? storedSequences[lead.campaignId] : undefined;
+                await syncLeadToSupabase(lead, audit, seq);
+              }
+            }
+
+            // Union merge local + cloud records
+            const urlMap = new Map<string, Lead>();
+            storedLeads.forEach((l) => urlMap.set(l.url, l));
+            cloudLeads.forEach((l) => {
+              const existing = urlMap.get(l.url);
+              if (!existing || new Date(l.lastAuditedAt).getTime() >= new Date(existing.lastAuditedAt).getTime()) {
+                urlMap.set(l.url, l);
+              }
             });
 
-            setAudits((prev) => {
-              const merged = { ...prev, ...cloudRes.audits };
-              saveStoredAudits(merged);
-              return merged;
-            });
+            const mergedLeads = Array.from(urlMap.values()).sort(
+              (a, b) => new Date(b.lastAuditedAt).getTime() - new Date(a.lastAuditedAt).getTime()
+            );
 
-            setSequences((prev) => {
-              const merged = { ...prev, ...cloudRes.sequences };
-              saveStoredSequences(merged);
-              return merged;
-            });
+            const mergedAudits = { ...storedAudits, ...cloudRes.audits };
+            const mergedSequences = { ...storedSequences, ...cloudRes.sequences };
+
+            setLeads(mergedLeads);
+            saveStoredLeads(mergedLeads);
+            setAudits(mergedAudits);
+            saveStoredAudits(mergedAudits);
+            setSequences(mergedSequences);
+            saveStoredSequences(mergedSequences);
+
+            if (missingInCloud.length > 0) {
+              showToast(`Synced ${missingInCloud.length} local audit${missingInCloud.length > 1 ? 's' : ''} to Supabase cloud`, 'success');
+            } else if (cloudLeads.length > storedLeads.length) {
+              showToast(`Restored ${cloudLeads.length - storedLeads.length} cloud audit${cloudLeads.length - storedLeads.length > 1 ? 's' : ''} across devices`, 'success');
+            }
           }
         } catch (cloudErr) {
           console.warn('Supabase cloud hydration warning:', cloudErr);
@@ -525,6 +557,24 @@ export default function HomePage() {
                 <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
               )}
               <span className="truncate">{toastMessage.text}</span>
+            </div>
+          )}
+
+          {/* Missing Supabase Tables Notice Banner */}
+          {supabaseTableMissing && (
+            <div className="mb-6 p-3 sm:p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 backdrop-blur-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-200 animate-fade-in">
+              <div className="flex items-center gap-2.5">
+                <AlertCircle className="h-4 w-4 text-amber-400 shrink-0" />
+                <span>
+                  <strong>Supabase tables missing</strong>: Cross-device sync is paused because tables (<code className="text-amber-300 font-mono">leads</code>, <code className="text-amber-300 font-mono">audits</code>) are not created in your Supabase project yet.
+                </span>
+              </div>
+              <button
+                onClick={() => setIsSupabaseModalOpen(true)}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-xs transition-colors shadow-xs"
+              >
+                Run SQL Setup ➔
+              </button>
             </div>
           )}
 

@@ -238,6 +238,7 @@ export async function syncLeadToSupabase(
         visual_critique: audit.visualCritique,
         redesign_suggestion: audit.redesignSuggestion,
         raw_metrics: audit.rawMetrics,
+        screenshot_url: audit.screenshotUrl || null,
         analyzed_at: audit.analyzedAt,
       }, { onConflict: 'url' });
       if (auditErr) console.warn('Supabase audit upsert warning:', auditErr);
@@ -343,6 +344,7 @@ export async function fetchFromSupabase(): Promise<CloudSyncResult> {
             totalStylesheets: 4,
             legacyLibrariesDetected: [],
           },
+          screenshotUrl: a.screenshot_url || undefined,
         };
       }
     }
@@ -418,6 +420,36 @@ export async function deleteLeadFromSupabase(url: string): Promise<void> {
   } catch (err) {
     console.warn('Failed to delete lead from Supabase:', err);
   }
+}
+
+/**
+ * Pushes all local leads, audits, and sequences to Supabase.
+ */
+export async function syncAllToSupabase(): Promise<{ success: boolean; synced: number; error?: string }> {
+  const config = getStoredSupabaseConfig();
+  if (!config.url || !config.anonKey) {
+    return { success: false, synced: 0, error: 'Supabase credentials not configured.' };
+  }
+
+  const leads = getStoredLeads();
+  const audits = getStoredAudits();
+  const sequences = getStoredSequences();
+
+  let synced = 0;
+  let lastError: string | undefined;
+
+  for (const lead of leads) {
+    const audit = lead.auditId ? audits[lead.auditId] : undefined;
+    const seq = lead.campaignId ? sequences[lead.campaignId] : undefined;
+    const res = await syncLeadToSupabase(lead, audit, seq);
+    if (res.success) {
+      synced++;
+    } else {
+      lastError = res.error;
+    }
+  }
+
+  return { success: synced > 0 || leads.length === 0, synced, error: lastError };
 }
 
 export const DEFAULT_USER_PROFILE: UserProfile = {
